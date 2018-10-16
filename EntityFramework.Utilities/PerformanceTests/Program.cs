@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,7 +8,7 @@ using PerformanceTests.Models;
 
 namespace PerformanceTests
 {
-	internal class Program
+	internal static class Program
 	{
 		private static void Main()
 		{
@@ -24,8 +23,13 @@ namespace PerformanceTests
 		private static void ExecuteTest(int count)
 		{
 			Console.WriteLine($"Standard iteration with " + count + " entities");
+			CreateDatabase();
+			WarmUpConntection();
 			BatchIteration(count);
 			Console.WriteLine();
+
+			CreateDatabase();
+			WarmUpConntection();
 			NormalIteration(count);
 			Console.WriteLine();
 		}
@@ -39,7 +43,6 @@ namespace PerformanceTests
 		[MethodImpl(MethodImplOptions.NoOptimization)]
 		private static void NormalIteration(int count)
 		{
-			CreateDatabase();
 			var stopwatch = new Stopwatch();
 
 			using (var db = new Context())
@@ -130,7 +133,6 @@ namespace PerformanceTests
 		[MethodImpl(MethodImplOptions.NoOptimization)]
 		private static void BatchIteration(int count)
 		{
-			CreateDatabase();
 			var stopwatch = new Stopwatch();
 			using (var db = new Context())
 			{
@@ -214,6 +216,20 @@ namespace PerformanceTests
 					Town = "Town"
 				}
 			});
+		}
+
+		/// <summary>
+		/// Prepares the database connection by requesting random data.
+		/// </summary>
+		private static void WarmUpConntection()
+		{
+			using (var db = new Context())
+			{
+				var comment = db.Comments.Add(new Comment { Text = "Test", Date = DateTime.Now, Address = new Address() });
+				db.SaveChanges();
+				db.Comments.Remove(comment);
+				db.SaveChanges();
+			}
 		}
 
 		private static void LogMessage(string testMethod, string action, int iterations, long time)
