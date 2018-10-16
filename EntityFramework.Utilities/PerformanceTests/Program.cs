@@ -78,12 +78,18 @@ namespace PerformanceTests
 				CreateDatabase();
 				WarmUpConntection();
 				BatchIteration(count);
-				Console.WriteLine();
+				if (count > 0)
+				{
+					Console.WriteLine();
+				}
 
 				CreateDatabase();
 				WarmUpConntection();
 				NormalIteration(count);
-				Console.WriteLine();
+				if (count > 0)
+				{
+					Console.WriteLine();
+				}
 			}
 		}
 
