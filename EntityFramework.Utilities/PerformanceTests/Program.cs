@@ -1,4 +1,8 @@
-﻿namespace PerformanceTests
+﻿/*
+ * A class file used to test the performance of the EntityFramework.Utilities packages.
+ * Note that for optimal benchmarking results you will need to run in Release mode.
+ */
+namespace PerformanceTests
 {
 	using System;
 	using System.Collections.Generic;
@@ -32,6 +36,9 @@
 				}
 			}
 
+			// This is used to execute the method, making the JIT compile the code into IL.
+			ExecuteTest(0, 20);
+
 			foreach (var test in new[] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
 			{
 				// We try and catch a general exception as things could go wrong with the benchmark process.
@@ -57,7 +64,15 @@
 		/// <param name="count">The amount of entities the test should use</param>
 		private static void ExecuteTest(int count, int runs)
 		{
-			Console.WriteLine($"Standard iteration with " + count + " entities");
+			if (count > 0)
+			{
+				Console.WriteLine($"Standard iteration with " + count + " entities");
+			}
+			else
+			{
+				Console.WriteLine($"Performing Warm-Up");
+			}
+
 
 			for(var i = 0; i < runs; i++)
 			{
@@ -279,6 +294,12 @@
 		/// <param name="time">The time the action took in milliseconds</param>
 		private static void LogMessage(string testMethod, string action, int iterations, long time)
 		{
+			// If the amount of iterations is 0, that means that it's a warmup run, no performance has to be documented.
+			if (iterations.Equals(0))
+			{
+				return;
+			}
+
 			Console.WriteLine(string.Format("[{0}] {1} {2} iterations took {3} ms", testMethod, action, iterations, time));
 		}
 	}
