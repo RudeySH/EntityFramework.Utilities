@@ -1,18 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using EntityFramework.Utilities;
-using PerformanceTests.Models;
-
-namespace PerformanceTests
+﻿namespace PerformanceTests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Runtime.CompilerServices;
+	using EntityFramework.Utilities;
+	using PerformanceTests.Models;
+
+	/// <summary>
+	/// Run-able class used to test the performance of the EntityFramework.Utilities package
+	/// </summary>
 	internal static class Program
 	{
 		private static void Main()
 		{
-			foreach (var test in new [] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
+			foreach (var test in new[] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
 			{
 				ExecuteTest(test);
 			}
@@ -20,6 +23,10 @@ namespace PerformanceTests
 			Console.ReadLine();
 		}
 
+		/// <summary>
+		/// Executes the test based on the given count.
+		/// </summary>
+		/// <param name="count">The amount of entities the test should use</param>
 		private static void ExecuteTest(int count)
 		{
 			Console.WriteLine($"Standard iteration with " + count + " entities");
@@ -74,7 +81,6 @@ namespace PerformanceTests
 				db.SaveChanges();
 				stopwatch.Stop();
 				LogMessage("EF6", "Update all entities with 'a'", count, stopwatch.ElapsedMilliseconds);
-
 			}
 
 			using (var db = new Context())
