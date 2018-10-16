@@ -15,9 +15,23 @@
 	{
 		private static void Main()
 		{
+			var runs = -1;
+			while(runs < 1)
+			{
+				Console.WriteLine("Specify the amount of runs that should be done, must be greater than 0.");
+				try
+				{
+					runs = Convert.ToInt32(Console.ReadLine());
+				}
+				catch
+				{
+					Console.WriteLine("Error converting input to an int");
+				}
+			}
+
 			foreach (var test in new[] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
 			{
-				ExecuteTest(test);
+				ExecuteTest(test, runs);
 			}
 			Console.WriteLine("Completed benchmarks");
 			Console.ReadLine();
@@ -27,18 +41,22 @@
 		/// Executes the test based on the given count.
 		/// </summary>
 		/// <param name="count">The amount of entities the test should use</param>
-		private static void ExecuteTest(int count)
+		private static void ExecuteTest(int count, int runs)
 		{
 			Console.WriteLine($"Standard iteration with " + count + " entities");
-			CreateDatabase();
-			WarmUpConntection();
-			BatchIteration(count);
-			Console.WriteLine();
 
-			CreateDatabase();
-			WarmUpConntection();
-			NormalIteration(count);
-			Console.WriteLine();
+			for(var i = 0; i < runs; i++)
+			{
+				CreateDatabase();
+				WarmUpConntection();
+				BatchIteration(count);
+				Console.WriteLine();
+
+				CreateDatabase();
+				WarmUpConntection();
+				NormalIteration(count);
+				Console.WriteLine();
+			}
 		}
 
 		/// <summary>
@@ -97,7 +115,7 @@
 				stopwatch.Restart();
 				db.SaveChanges();
 				stopwatch.Stop();
-				LogMessage("EF6", "Update all with a random read", count, stopwatch.ElapsedMilliseconds);
+				LogMessage("EF6", "Update all with 'a' random read", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
@@ -154,7 +172,7 @@
 				stopwatch.Restart();
 				EFBatchOperation.For(db, db.Comments).Where(x => x.Text == "a").Update(x => x.Reads, x => x.Reads + 1);
 				stopwatch.Stop();
-				LogMessage("EFU", "Update all entities with a", count, stopwatch.ElapsedMilliseconds);
+				LogMessage("EFU", "Update all entities with 'a'", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
@@ -238,6 +256,13 @@
 			}
 		}
 
+		/// <summary>
+		/// Logs a message about the benchmark that has been done
+		/// </summary>
+		/// <param name="testMethod">Which framework are we using</param>
+		/// <param name="action">Which action has been tested</param>
+		/// <param name="iterations">The amount of entities that have been used</param>
+		/// <param name="time">The time the action took in milliseconds</param>
 		private static void LogMessage(string testMethod, string action, int iterations, long time)
 		{
 			Console.WriteLine(string.Format("[{0}] {1} {2} iterations took {3} ms", testMethod, action, iterations, time));
