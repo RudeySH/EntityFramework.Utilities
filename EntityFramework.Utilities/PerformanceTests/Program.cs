@@ -13,56 +13,65 @@ namespace PerformanceTests
 	{
 		private static void Main()
 		{
-			BatchIteration(25);
-			BatchIteration(25);
-			NormalIteration(25);
-			NormalIteration(25);
-			BatchIteration(2500);
-			NormalIteration(2500);
-			BatchIteration(25000);
-			NormalIteration(25000);
-			BatchIteration(50000);
-			//NormalIteration(50000);
-			BatchIteration(100000);
-			NormalIteration(100000);
+			foreach (var test in new [] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
+			{
+				ExecuteTest(test);
+			}
+			Console.WriteLine("Completed benchmarks");
+			Console.ReadLine();
 		}
 
+		private static void ExecuteTest(int count)
+		{
+			Console.WriteLine($"Standard iteration with " + count + " entities");
+			BatchIteration(count);
+			Console.WriteLine();
+			NormalIteration(count);
+			Console.WriteLine();
+		}
+
+		/// <summary>
+		/// Does a testing iteration using default Entity Framework implementations.
+		/// This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
+		/// The contexts within the test have been optimized to not track changes where possible.
+		/// </summary>
+		/// <param name="count">The amount of objects that will be edited.</param>
 		[MethodImpl(MethodImplOptions.NoOptimization)]
 		private static void NormalIteration(int count)
 		{
-			Console.WriteLine("Standard iteration with " + count + " entities");
-			CreateAndWarmUp();
+			CreateDatabase();
 			var stopwatch = new Stopwatch();
 
 			using (var db = new Context())
 			{
 				db.Configuration.AutoDetectChangesEnabled = false;
 				db.Configuration.ValidateOnSaveEnabled = false;
-				var comments = GetEntities(count).ToList();
-				stopwatch.Start();
 
-				foreach (var comment in comments)
+				foreach (var comment in GetEntities(count))
 				{
 					db.Comments.Add(comment);
 				}
 
+				stopwatch.Start();
 				db.SaveChanges();
 				stopwatch.Stop();
-				Console.WriteLine("Insert entities: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EF6", "Insert entities", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
 			{
 				db.Configuration.AutoDetectChangesEnabled = true;
 				db.Configuration.ValidateOnSaveEnabled = false;
-				stopwatch.Restart();
 				foreach (var item in db.Comments.Where(c => c.Text == "a").ToList())
 				{
 					item.Reads++;
 				}
+
+				stopwatch.Restart();
 				db.SaveChanges();
 				stopwatch.Stop();
-				Console.WriteLine("Update all entities with a: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EF6", "Update all entities with 'a'", count, stopwatch.ElapsedMilliseconds);
+
 			}
 
 			using (var db = new Context())
@@ -75,55 +84,61 @@ namespace PerformanceTests
 				{
 					item.Reads = rand.Next(0, 9999999);
 				}
+
 				stopwatch.Restart();
 				db.SaveChanges();
-
 				stopwatch.Stop();
-				Console.WriteLine("Update all with a random read: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EF6", "Update all with a random read", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
 			{
 				db.Configuration.AutoDetectChangesEnabled = false;
 				db.Configuration.ValidateOnSaveEnabled = false;
-				stopwatch.Restart();
 				foreach (var item in db.Comments.Where(c => c.Text == "a").ToList())
 				{
 					db.Comments.Remove(item);
 				}
+
+				stopwatch.Restart();
 				db.SaveChanges();
 				stopwatch.Stop();
-				Console.WriteLine("delete all entities with a: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EF6", "Delete all entities with 'a'", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
 			{
 				db.Configuration.AutoDetectChangesEnabled = false;
 				db.Configuration.ValidateOnSaveEnabled = false;
-				stopwatch.Restart();
 				foreach (var item in db.Comments.ToList())
 				{
 					db.Comments.Remove(item);
 				}
+
+				stopwatch.Restart();
 				db.SaveChanges();
 				stopwatch.Stop();
-				Console.WriteLine("delete all entities: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EF6", "Delete all entities", count, stopwatch.ElapsedMilliseconds);
 			}
 		}
 
+		/// <summary>
+		/// Does a testing iteration using Entity Framework Utilities.
+		/// This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
+		/// </summary>
+		/// <param name="count">The amount of objects that will be edited.</param>
 		[MethodImpl(MethodImplOptions.NoOptimization)]
 		private static void BatchIteration(int count)
 		{
-			Console.WriteLine("Batch iteration with " + count + " entities");
-			CreateAndWarmUp();
+			CreateDatabase();
 			var stopwatch = new Stopwatch();
 			using (var db = new Context())
 			{
-				var comments = GetEntities(count).ToList();
+				var comments = GetEntities(count);
 				stopwatch.Start();
 				EFBatchOperation.For(db, db.Comments).InsertAll(comments);
 				stopwatch.Stop();
-				Console.WriteLine("Insert entities: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EFU", "Insert entities", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
@@ -131,7 +146,7 @@ namespace PerformanceTests
 				stopwatch.Restart();
 				EFBatchOperation.For(db, db.Comments).Where(x => x.Text == "a").Update(x => x.Reads, x => x.Reads + 1);
 				stopwatch.Stop();
-				Console.WriteLine("Update all entities with a: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EFU", "Update all entities with a", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
@@ -145,7 +160,7 @@ namespace PerformanceTests
 				stopwatch.Restart();
 				EFBatchOperation.For(db, db.Comments).UpdateAll(commentsFromDb, x => x.ColumnsToUpdate(c => c.Reads));
 				stopwatch.Stop();
-				Console.WriteLine("Bulk update all with a random read: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EFU", "Bulk update all with a random read", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
@@ -153,19 +168,23 @@ namespace PerformanceTests
 				stopwatch.Restart();
 				EFBatchOperation.For(db, db.Comments).Where(x => x.Text == "a").Delete();
 				stopwatch.Stop();
-				Console.WriteLine("delete all entities with a: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EFU", "Delete all entities with 'a'", count, stopwatch.ElapsedMilliseconds);
 			}
 
 			using (var db = new Context())
 			{
 				stopwatch.Restart();
-				EFBatchOperation.For(db, db.Comments).Where(x => true).Delete();
+				EFBatchOperation.For(db, db.Comments).Where(_ => true).Delete();
 				stopwatch.Stop();
-				Console.WriteLine("delete all entities: " + stopwatch.ElapsedMilliseconds + "ms");
+				LogMessage("EFU", "Delete all entities", count, stopwatch.ElapsedMilliseconds);
 			}
 		}
 
-		private static void CreateAndWarmUp()
+		/// <summary>
+		/// Creates the databases based off the <see cref="Context"/> class.
+		/// When the database already exists it will be deleted.
+		/// </summary>
+		private static void CreateDatabase()
 		{
 			using (var db = new Context())
 			{
@@ -174,15 +193,14 @@ namespace PerformanceTests
 					db.Database.Delete();
 				}
 				db.Database.Create();
-
-				//warmup
-				db.Comments.Add(new Comment { Date = DateTime.Now, Address = new Address() });
-				db.SaveChanges();
-				db.Comments.Remove(db.Comments.First());
-				db.SaveChanges();
 			}
 		}
 
+		/// <summary>
+		///	Creates an <see cref="IEnumerable{Comment}"/> an fills it with test data.
+		/// </summary>
+		/// <param name="count">The amount of items wanted in the IEnumerable</param>
+		/// <returns>An IEnumerable of the <see cref="Comment"/> class.</returns>
 		private static IEnumerable<Comment> GetEntities(int count)
 		{
 			return Enumerable.Repeat('a', count).Select((c, i) => new Comment
@@ -196,6 +214,11 @@ namespace PerformanceTests
 					Town = "Town"
 				}
 			});
+		}
+
+		private static void LogMessage(string testMethod, string action, int iterations, long time)
+		{
+			Console.WriteLine(string.Format("[{0}] {1} {2} iterations took {3} ms", testMethod, action, iterations, time));
 		}
 	}
 }
