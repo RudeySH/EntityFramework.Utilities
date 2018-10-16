@@ -2,6 +2,7 @@
  * A class file used to test the performance of the EntityFramework.Utilities packages.
  * Note that for optimal benchmarking results you will need to run in Release mode.
  */
+
 namespace PerformanceTests
 {
 	using System;
@@ -20,7 +21,7 @@ namespace PerformanceTests
 		private static void Main()
 		{
 			var runs = -1;
-			while(runs < 1)
+			while (runs < 1)
 			{
 				Console.WriteLine("Specify the amount of runs that should be done, must be greater than 0.");
 				Console.WriteLine("The 'runs' indicate how many times an action is performed on the entity count.");
@@ -51,7 +52,6 @@ namespace PerformanceTests
 				{
 					Console.WriteLine(exception.StackTrace);
 				}
-
 			}
 
 			Console.WriteLine("Completed benchmarks");
@@ -73,8 +73,7 @@ namespace PerformanceTests
 				Console.WriteLine($"Performing Warm-Up");
 			}
 
-
-			for(var i = 0; i < runs; i++)
+			for (var i = 0; i < runs; i++)
 			{
 				CreateDatabase();
 				WarmUpConntection();
