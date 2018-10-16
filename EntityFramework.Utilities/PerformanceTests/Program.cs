@@ -19,20 +19,34 @@
 			while(runs < 1)
 			{
 				Console.WriteLine("Specify the amount of runs that should be done, must be greater than 0.");
+				Console.WriteLine("The 'runs' indicate how many times an action is performed on the entity count.");
 				try
 				{
 					runs = Convert.ToInt32(Console.ReadLine());
 				}
 				catch
 				{
+					Console.ForegroundColor = ConsoleColor.Red;
 					Console.WriteLine("Error converting input to an int");
+					Console.ForegroundColor = ConsoleColor.Gray;
 				}
 			}
 
 			foreach (var test in new[] { 25, 100, 250, 500, 1000, 2500, 5000, 25000, 50000, 10000, 100000 })
 			{
-				ExecuteTest(test, runs);
+				// We try and catch a general exception as things could go wrong with the benchmark process.
+				// While catching a general exception is not the most clean approach, we just want to inform the user what has happened.
+				try
+				{
+					ExecuteTest(test, runs);
+				}
+				catch (Exception exception)
+				{
+					Console.WriteLine(exception.StackTrace);
+				}
+
 			}
+
 			Console.WriteLine("Completed benchmarks");
 			Console.ReadLine();
 		}
