@@ -2,7 +2,6 @@
  * A class file used to test the performance of the EntityFramework.Utilities packages.
  * Note that for optimal benchmarking results you will need to run in Release mode.
  */
-
 namespace PerformanceTests
 {
 	using System;
