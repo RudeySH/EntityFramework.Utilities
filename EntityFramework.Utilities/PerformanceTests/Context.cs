@@ -6,7 +6,7 @@
 	public class Context : DbContext
 	{
 		public Context()
-			: base("Server=.\\SQLExpress;Database=EFUPerformance;Trusted_Connection=True;MultipleActiveResultSets=true;")
+			: base("Data Source=./; Initial Catalog=EFUTest; Integrated Security=SSPI; MultipleActiveResultSets=True")
 		{
 		}
 

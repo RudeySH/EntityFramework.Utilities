@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace EntityFramework.Utilities
 {
-	// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/
+	// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/ 
 	// This whole file contains a hack needed because the mapping API is internal pre 6.1 atleast
 
 	/// <summary>
@@ -206,7 +206,7 @@ namespace EntityFramework.Utilities
 					}
 				}
 
-				//Inheriting propertymappings contains duplicates for id's.
+				//Inheriting propertymappings contains duplicates for id's. 
 				tableMapping.PropertyMappings = tableMapping.PropertyMappings.GroupBy(p => p.ColumnName)
 					.Select(g => g.OrderByDescending(outer => g.Count(inner => inner.ForEntityType.IsSubclassOf(outer.ForEntityType))).First())
 					.ToList();

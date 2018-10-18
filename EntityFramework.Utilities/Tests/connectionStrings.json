@@ -1,4 +1,4 @@
 ﻿{
-	"SqlServer": "Server=.\\SQLExpress;Database=EFUTests;Trusted_Connection=True;MultipleActiveResultSets=true;",
+	"SqlServer": "Data Source=./; Initial Catalog=BatchTests; Integrated Security=SSPI; MultipleActiveResultSets=True",
 	"SqlCe": "Data Source=BatchTests.sdf"
 }
