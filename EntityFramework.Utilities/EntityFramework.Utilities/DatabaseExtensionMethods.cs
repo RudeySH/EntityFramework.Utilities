@@ -19,13 +19,17 @@ namespace EntityFramework.Utilities
 				// if you used master db as Initial Catalog, there is no need to change database
 				sqlconnection.ChangeDatabase("master");
 
-				var rollbackCommand = @"ALTER DATABASE [" + name + "] SET  SINGLE_USER WITH ROLLBACK IMMEDIATE;";
+				var nameParameter = new SqlParameter();
+				nameParameter.ParameterName = "@Name";
+				nameParameter.Value = name;
+
+				var rollbackCommand = @"ALTER DATABASE [@Name] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
 
 				var deletecommand = new SqlCommand(rollbackCommand, sqlconnection);
 
 				deletecommand.ExecuteNonQuery();
 
-				var deleteCommand = @"DROP DATABASE [" + name + "];";
+				var deleteCommand = @"DROP DATABASE [@Name];";
 
 				deletecommand = new SqlCommand(deleteCommand, sqlconnection);
 
