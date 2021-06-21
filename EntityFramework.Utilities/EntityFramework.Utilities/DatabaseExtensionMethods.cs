@@ -26,12 +26,14 @@ namespace EntityFramework.Utilities
 				var rollbackCommand = @"ALTER DATABASE [@Name] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
 
 				var deletecommand = new SqlCommand(rollbackCommand, sqlconnection);
+				deletecommand.Parameters.Add(nameParameter);
 
 				deletecommand.ExecuteNonQuery();
 
 				var deleteCommand = @"DROP DATABASE [@Name];";
 
 				deletecommand = new SqlCommand(deleteCommand, sqlconnection);
+				deletecommand.Parameters.Add(nameParameter);
 
 				deletecommand.ExecuteNonQuery();
 			}
