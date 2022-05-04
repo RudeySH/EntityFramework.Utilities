@@ -15,7 +15,7 @@ namespace EntityFramework.Utilities
 		}
 
 		/// <summary>
-		/// Add, Remove or replace query provider by modifing this collection
+		/// Add, Remove or replace query provider by modifying this collection
 		/// </summary>
 		public static ICollection<IQueryProvider> Providers { get; set; }
 
@@ -25,7 +25,7 @@ namespace EntityFramework.Utilities
 		public static Action<string> Log { get; set; }
 
 		/// <summary>
-		/// If you want an exception to be thrown if the provider doesn't support the operation set this to true. 
+		/// If you want an exception to be thrown if the provider doesn't support the operation set this to true.
 		/// Otherwise it will fall back to the default EF behaviour meaning a performance penalty
 		/// </summary>
 		public static bool DisableDefaultFallback { get; set; }

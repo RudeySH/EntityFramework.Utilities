@@ -1,6 +1,5 @@
 ﻿namespace PerformanceTests
 {
-	using System.Data.Entity;
 	using PerformanceTests.Models;
 
 	public class Context : DbContext

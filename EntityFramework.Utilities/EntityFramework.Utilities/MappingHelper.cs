@@ -8,11 +8,11 @@ using System.Linq;
 
 namespace EntityFramework.Utilities
 {
-	// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/ 
-	// This whole file contains a hack needed because the mapping API is internal pre 6.1 atleast
+	// Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/
+	// This whole file contains a hack needed because the mapping API is internal pre 6.1 at least
 
 	/// <summary>
-	/// Represents the mapping of an entitiy type to one or mode tables in the database
+	/// Represents the mapping of an entity type to one or mode tables in the database
 	///
 	/// A single entity can be mapped to more than one table when 'Entity Splitting' is used
 	/// Entity Splitting involves mapping different properties from the same type to different tables
@@ -121,7 +121,7 @@ namespace EntityFramework.Utilities
 			// Object part of the model that contains info about the actual CLR types
 			var objectItemCollection = (ObjectItemCollection)metadata.GetItemCollection(DataSpace.OSpace);
 
-			// Loop thru each entity type in the model
+			// Loop through each entity type in the model
 			foreach (var set in conceptualContainer.BaseEntitySets.OfType<EntitySet>())
 			{
 				// Find the mapping between conceptual and storage model for this entity set
@@ -206,7 +206,7 @@ namespace EntityFramework.Utilities
 					}
 				}
 
-				//Inheriting propertymappings contains duplicates for id's. 
+				//Inheriting propertymappings contains duplicates for id's.
 				tableMapping.PropertyMappings = tableMapping.PropertyMappings.GroupBy(p => p.ColumnName)
 					.Select(g => g.OrderByDescending(outer => g.Count(inner => inner.ForEntityType.IsSubclassOf(outer.ForEntityType))).First())
 					.ToList();

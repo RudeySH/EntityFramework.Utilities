@@ -13,7 +13,7 @@ namespace EntityFramework.Utilities
 	public static class EFQueryHelpers
 	{
 		/// <summary>
-		/// Loads a child collection in a more efficent way than the standard Include. Will run all involved queries as NoTracking
+		/// Loads a child collection in a more efficient way than the standard Include. Will run all involved queries as NoTracking
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="TChild"></typeparam>

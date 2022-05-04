@@ -83,9 +83,7 @@ namespace EntityFramework.Utilities
 			_context = (context as IObjectContextAdapter).ObjectContext;
 		}
 
-		public static IEFBatchOperationBase<T> For<TContext, T>(TContext context, IDbSet<T> set)
-			where TContext : DbContext
-			where T : class
+		public static IEFBatchOperationBase<T> For(TContext context, IDbSet<T> set)
 		{
 			return new EFBatchOperation<TContext, T>(context);
 		}
