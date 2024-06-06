@@ -11,7 +11,7 @@ namespace EntityFramework.Utilities
 		{
 			if (Configuration.DisableDefaultFallback)
 			{
-				throw new InvalidOperationException("No provider supporting the InsertAll operation for this datasource was found");
+				throw new InvalidOperationException("No provider supporting the InsertAll operation for this data source was found");
 			}
 
 			var set = context.CreateObjectSet<T>();
@@ -28,7 +28,7 @@ namespace EntityFramework.Utilities
 		{
 			if (Configuration.DisableDefaultFallback)
 			{
-				throw new InvalidOperationException("No provider supporting the Delete operation for this datasource was found");
+				throw new InvalidOperationException("No provider supporting the Delete operation for this data source was found");
 			}
 
 			var set = context.CreateObjectSet<T>();
@@ -47,7 +47,7 @@ namespace EntityFramework.Utilities
 		{
 			if (Configuration.DisableDefaultFallback)
 			{
-				throw new InvalidOperationException("No provider supporting the Update operation for this datasource was found");
+				throw new InvalidOperationException("No provider supporting the Update operation for this data source was found");
 			}
 
 			var set = context.CreateObjectSet<T>();

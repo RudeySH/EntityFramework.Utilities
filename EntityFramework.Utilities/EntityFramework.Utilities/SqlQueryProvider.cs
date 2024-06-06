@@ -49,14 +49,15 @@ namespace EntityFramework.Utilities
 				$"UPDATE [{predicateQueryInfo.Schema}].[{predicateQueryInfo.Table}] SET {updateSql} {predicateQueryInfo.WhereSql}";
 		}
 
-		public void InsertItems<T>(IEnumerable<T> items, string schema, string tableName, IList<ColumnMapping> properties, DbConnection storeConnection, int? batchSize, int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction)
+		public void InsertItems<T>(
+			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbConnection storeConnection, int? batchSize, int? executeTimeout, SqlBulkCopyOptions copyOptions,
+			DbTransaction transaction)
 		{
 			using (var reader = new EFDataReader<T>(items, properties))
 			{
 				if (storeConnection.State != System.Data.ConnectionState.Open)
-				{
 					storeConnection.Open();
-				}
 
 				using (var copy = new SqlBulkCopy((SqlConnection)storeConnection, copyOptions, transaction as SqlTransaction))
 				{
@@ -64,20 +65,14 @@ namespace EntityFramework.Utilities
 					copy.BatchSize = batchSize ?? 15000; //default batch size
 
 					if (!string.IsNullOrWhiteSpace(schema))
-					{
 						copy.DestinationTableName = $"[{schema}].[{tableName}]";
-					}
 					else
-					{
-						copy.DestinationTableName = "[" + tableName + "]";
-					}
+						copy.DestinationTableName = $"[{tableName}]";
 
 					copy.NotifyAfter = 0;
 
-					foreach (var i in Enumerable.Range(0, reader.FieldCount))
-					{
+					for (var i = 0; i < reader.FieldCount; i++)
 						copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
-					}
 
 					copy.WriteToServer(reader);
 					copy.Close();
@@ -85,54 +80,53 @@ namespace EntityFramework.Utilities
 			}
 		}
 
-		public void UpdateItems<T>(IEnumerable<T> items, string schema, string tableName, IList<ColumnMapping> properties, DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification, int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction, DbConnection insertConnection)
+		public void UpdateItems<T>(
+			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification,
+			int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction,
+			DbConnection insertConnection)
 		{
-			var tempTableName = "#" + Guid.NewGuid().ToString("N");
-			var columnsToUpdate = updateSpecification.Properties.Select(p => p.GetPropertyName()).ToDictionary(x => x);
-			var filtered = properties.Where(p => columnsToUpdate.ContainsKey(p.NameOnObject) || p.IsPrimaryKey).ToList();
-			var columns = filtered.Select(c => "[" + c.NameInDatabase + "] " + c.DataTypeFull + (c.DataType.EndsWith("char") ? " COLLATE DATABASE_DEFAULT" : null));
-			var pkConstraint = string.Join(", ", properties.Where(p => p.IsPrimaryKey).Select(c => "[" + c.NameInDatabase + "]"));
+			var tempTableName = $"#{Guid.NewGuid():N}";
+			var columnsToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
 
-			var str = $"CREATE TABLE [{schema}].[{tempTableName}]({string.Join(", ", columns)}, PRIMARY KEY ({pkConstraint}))";
+			properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
 
 			if (storeConnection.State != System.Data.ConnectionState.Open)
-			{
 				storeConnection.Open();
-			}
-
-			var setters = string.Join(",", filtered.Where(c => !c.IsPrimaryKey).Select(c => "ORIG.[" + c.NameInDatabase + "] = TEMP.[" + c.NameInDatabase + "]"));
-			var pks = properties.Where(p => p.IsPrimaryKey).Select(x => "ORIG.[" + x.NameInDatabase + "] = TEMP.[" + x.NameInDatabase + "]");
-			var filter = string.Join(" and ", pks);
-			var mergeCommand = string.Format(@"UPDATE ORIG
-				SET
-					{4}
-				FROM
-					[{0}].[{1}] ORIG
-				INNER JOIN
-					 [{0}].[{2}] TEMP
-				ON
-					{3}", schema, tableName, tempTableName, filter, setters);
 
 			using (var createCommand = storeConnection.CreateCommand())
-			using (var mCommand = storeConnection.CreateCommand())
-			using (var dCommand = storeConnection.CreateCommand())
 			{
-				createCommand.CommandText = str;
-				mCommand.CommandText = mergeCommand;
-				dCommand.CommandText = $"DROP table [{schema}].[{tempTableName}]";
+				var columns = properties.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char") ? " COLLATE DATABASE_DEFAULT" : null)}");
+				var pkConstraint = string.Join(", ", properties.Where(p => p.IsPrimaryKey).Select(p => $"[{p.NameInDatabase}]"));
 
+				createCommand.CommandText = $"CREATE TABLE [{schema}].[{tempTableName}]({string.Join(", ", columns)}, PRIMARY KEY ({pkConstraint}))";
 				createCommand.CommandTimeout = executeTimeout ?? 600;
-				mCommand.CommandTimeout = executeTimeout ?? 600;
-				dCommand.CommandTimeout = executeTimeout ?? 600;
-
 				createCommand.Transaction = transaction;
-				mCommand.Transaction = transaction;
-				dCommand.Transaction = transaction;
 
 				createCommand.ExecuteNonQuery();
-				InsertItems(items, schema, tempTableName, filtered, insertConnection, batchSize, executeTimeout, copyOptions, transaction);
-				mCommand.ExecuteNonQuery();
-				dCommand.ExecuteNonQuery();
+			}
+
+			this.InsertItems(items, schema, tempTableName, properties, insertConnection, batchSize, executeTimeout, copyOptions, transaction);
+
+			using (var updateCommand = storeConnection.CreateCommand())
+			{
+				var joinCondition = string.Join(" AND ", properties.Where(p => p.IsPrimaryKey).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
+				var setters = string.Join(",", properties.Where(p => !p.IsPrimaryKey).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
+
+				updateCommand.CommandText = $"UPDATE o SET {setters} FROM [{schema}].[{tableName}] o INNER JOIN [{schema}].[{tempTableName}] t ON {joinCondition}";
+				updateCommand.CommandTimeout = executeTimeout ?? 600;
+				updateCommand.Transaction = transaction;
+
+				updateCommand.ExecuteNonQuery();
+			}
+
+			using (var deleteCommand = storeConnection.CreateCommand())
+			{
+				deleteCommand.CommandText = $"DROP TABLE [{schema}].[{tempTableName}]";
+				deleteCommand.CommandTimeout = executeTimeout ?? 600;
+				deleteCommand.Transaction = transaction;
+
+				deleteCommand.ExecuteNonQuery();
 			}
 		}
 
@@ -156,7 +150,7 @@ namespace EntityFramework.Utilities
 			if (i > 0)
 			{
 				var whereClause = str.Substring(i);
-				queryInfo.WhereSql = whereClause.Replace(queryInfo.Alias + ".", "");
+				queryInfo.WhereSql = whereClause.Replace(queryInfo.Alias + '.', "");
 			}
 
 			return queryInfo;

@@ -12,9 +12,19 @@ namespace EntityFramework.Utilities
 		bool CanBulkUpdate { get; }
 
 		string GetDeleteQuery(QueryInformation queryInformation);
+
 		string GetUpdateQuery(QueryInformation predicateQueryInfo, QueryInformation modificationQueryInfo);
-		void InsertItems<T>(IEnumerable<T> items, string schema, string tableName, IList<ColumnMapping> properties, DbConnection storeConnection, int? batchSize, int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction);
-		void UpdateItems<T>(IEnumerable<T> items, string schema, string tableName, IList<ColumnMapping> properties, DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification, int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction, DbConnection insertConnection);
+
+		void InsertItems<T>(
+			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbConnection storeConnection, int? batchSize, int? executeTimeout, SqlBulkCopyOptions copyOptions,
+			DbTransaction transaction);
+
+		void UpdateItems<T>(
+			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification,
+			int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction,
+			DbConnection insertConnection);
 
 		bool CanHandle(DbConnection storeConnection);
 
