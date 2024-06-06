@@ -42,7 +42,8 @@ namespace EntityFramework.Utilities
 		void UpdateAll<TEntity>(
 			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
 			DbConnection connection = null, int? batchSize = null, int? executeTimeout = null,
-			SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default, DbTransaction transaction = null)
+			SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default, DbTransaction transaction = null,
+			bool insertIfNotExists = false, bool deleteIfNotMatched = false)
 			where TEntity : class, T;
 
 		IEFBatchOperationFiltered<T> Where(Expression<Func<T, bool>> predicate);

@@ -24,7 +24,7 @@ namespace EntityFramework.Utilities
 			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
 			DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification,
 			int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction,
-			DbConnection insertConnection);
+			DbConnection insertConnection, bool insertIfNotMatched, bool deleteIfNotMatched);
 
 		bool CanHandle(DbConnection storeConnection);
 

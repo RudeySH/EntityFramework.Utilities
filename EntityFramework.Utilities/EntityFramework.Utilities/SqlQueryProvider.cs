@@ -84,12 +84,13 @@ namespace EntityFramework.Utilities
 			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
 			DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification,
 			int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction,
-			DbConnection insertConnection)
+			DbConnection insertConnection, bool insertIfNotMatched, bool deleteIfNotMatched)
 		{
 			var tempTableName = $"#{Guid.NewGuid():N}";
 			var columnsToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
 
-			properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
+			if (!insertIfNotMatched)
+				properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
 
 			if (storeConnection.State != System.Data.ConnectionState.Open)
 				storeConnection.Open();
@@ -111,9 +112,29 @@ namespace EntityFramework.Utilities
 			using (var updateCommand = storeConnection.CreateCommand())
 			{
 				var joinCondition = string.Join(" AND ", properties.Where(p => p.IsPrimaryKey).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
-				var setters = string.Join(",", properties.Where(p => !p.IsPrimaryKey).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
+				var setters = string.Join(",", properties.Where(p => columnsToUpdate.Contains(p.NameOnObject)).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
 
-				updateCommand.CommandText = $"UPDATE o SET {setters} FROM [{schema}].[{tableName}] o INNER JOIN [{schema}].[{tempTableName}] t ON {joinCondition}";
+				if (insertIfNotMatched || deleteIfNotMatched)
+				{
+					updateCommand.CommandText = $"MERGE [{schema}].[{tableName}] o USING [{schema}].[{tempTableName}] t ON {joinCondition}"
+						+ $" WHEN MATCHED THEN UPDATE SET {setters}";
+
+					if (insertIfNotMatched)
+					{
+						var columns = string.Join(",", properties.Select(p => $"[{p.NameInDatabase}]"));
+						var values = string.Join(",", properties.Select(p => $"t.[{p.NameInDatabase}]"));
+
+						updateCommand.CommandText += $" WHEN NOT MATCHED BY o THEN INSERT ({columns}) VALUES ({values})";
+					}
+
+					if (deleteIfNotMatched)
+						updateCommand.CommandText += $" WHEN NOT MATCHED BY t THEN DELETE";
+				}
+				else
+				{
+					updateCommand.CommandText = $"UPDATE o SET {setters} FROM [{schema}].[{tableName}] o INNER JOIN [{schema}].[{tempTableName}] t ON {joinCondition}";
+				}
+
 				updateCommand.CommandTimeout = executeTimeout ?? 600;
 				updateCommand.Transaction = transaction;
 

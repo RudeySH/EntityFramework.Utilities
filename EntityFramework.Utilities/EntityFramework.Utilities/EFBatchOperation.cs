@@ -95,7 +95,8 @@ namespace EntityFramework.Utilities
 		public void UpdateAll<TEntity>(
 			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
 			DbConnection connection = null, int? batchSize = null, int? executeTimeout = null,
-			SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default, DbTransaction transaction = null)
+			SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default, DbTransaction transaction = null,
+			bool insertIfNotMatched = false, bool deleteIfNotMatched = false)
 			where TEntity : class, T
 		{
 			var con = _context.Connection as EntityConnection;
@@ -143,7 +144,7 @@ namespace EntityFramework.Utilities
 
 			provider.UpdateItems(
 				items, tableMapping.Schema, tableMapping.TableName, properties, connectionToUse, batchSize, spec,
-				executeTimeout, copyOptions, transaction, insertConnection);
+				executeTimeout, copyOptions, transaction, insertConnection, insertIfNotMatched, deleteIfNotMatched);
 		}
 
 		public IEFBatchOperationFiltered<T> Where(Expression<Func<T, bool>> predicate)
