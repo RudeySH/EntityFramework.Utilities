@@ -1,17 +1,17 @@
-﻿/*
- * A class file used to test the performance of the EntityFramework.Utilities packages.
- * Note that for optimal benchmarking results you will need to run in Release mode.
- */
+﻿using EntityFramework.Utilities;
+using PerformanceTests.Models;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.CompilerServices;
+
+/*
+* A class file used to test the performance of the EntityFramework.Utilities packages.
+* Note that for optimal benchmarking results you will need to run in Release mode.
+*/
 namespace PerformanceTests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Linq;
-	using System.Runtime.CompilerServices;
-	using EntityFramework.Utilities;
-	using PerformanceTests.Models;
-
 	/// <summary>
 	/// Run-able class used to test the performance of the EntityFramework.Utilities package
 	/// </summary>

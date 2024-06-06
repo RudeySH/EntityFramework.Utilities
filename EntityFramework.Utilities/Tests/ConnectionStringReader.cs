@@ -1,5 +1,5 @@
-﻿using System.IO;
-using ServiceStack.Text;
+﻿using ServiceStack.Text;
+using System.IO;
 
 namespace Tests
 {

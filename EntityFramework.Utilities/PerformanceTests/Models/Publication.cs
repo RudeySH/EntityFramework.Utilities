@@ -1,7 +1,7 @@
-﻿namespace PerformanceTests.Models
-{
-	using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
+namespace PerformanceTests.Models
+{
 	public class Publication
 	{
 		public int Id { get; set; }

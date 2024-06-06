@@ -1,7 +1,8 @@
-﻿namespace PerformanceTests
-{
-	using PerformanceTests.Models;
+﻿using PerformanceTests.Models;
+using System.Data.Entity;
 
+namespace PerformanceTests
+{
 	public class Context : DbContext
 	{
 		public Context()

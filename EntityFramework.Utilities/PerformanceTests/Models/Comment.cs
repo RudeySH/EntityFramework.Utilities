@@ -1,7 +1,7 @@
-﻿namespace PerformanceTests.Models
-{
-	using System;
+﻿using System;
 
+namespace PerformanceTests.Models
+{
 	public class Comment
 	{
 		public int Id { get; set; }

@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using EntityFramework.Utilities;
+﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
+using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
