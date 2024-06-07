@@ -1,6 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Data.Common;
+using System.Data.Entity;
+using System.Data.Entity.Core.Objects;
 using System.Data.SqlClient;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
@@ -15,19 +18,27 @@ namespace EntityFramework.Utilities
 
 		string GetUpdateQuery(QueryInformation predicateQueryInfo, QueryInformation modificationQueryInfo);
 
-		void InsertItems<T>(
-			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
-			DbConnection storeConnection, int? batchSize, int? executeTimeout, SqlBulkCopyOptions copyOptions,
-			DbTransaction transaction);
+		int InsertItems<T>(
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			IEnumerable<T> items, int? batchSize, SqlBulkCopyOptions sqlBulkCopyOptions);
 
-		void UpdateItems<T>(
-			IEnumerable<T> items, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
-			DbConnection storeConnection, int? batchSize, UpdateSpecification<T> updateSpecification,
-			int? executeTimeout, SqlBulkCopyOptions copyOptions, DbTransaction transaction,
-			DbConnection insertConnection, bool insertIfNotMatched, bool deleteIfNotMatched);
+		Task<int> InsertItemsAsync<T>(
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			IEnumerable<T> items, int? batchSize, SqlBulkCopyOptions sqlBulkCopyOptions,
+			CancellationToken cancellationToken);
 
-		bool CanHandle(DbConnection storeConnection);
+		int UpdateItems<T>(
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
+			bool deleteIfNotMatched);
 
-		QueryInformation GetQueryInformation<T>(System.Data.Entity.Core.Objects.ObjectQuery<T> query);
+		Task<int> UpdateItemsAsync<T>(
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
+			bool deleteIfNotMatched, CancellationToken cancellationToken);
+
+		bool CanHandle(DbContext dbContext);
+
+		QueryInformation GetQueryInformation<T>(ObjectQuery<T> query);
 	}
 }

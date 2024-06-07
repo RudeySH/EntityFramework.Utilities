@@ -1,76 +1,72 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Data.Entity;
-using System.Data.Entity.Core.EntityClient;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
 	public static class EFBatchOperation
 	{
-		public static IEFBatchOperationBase<T> For<TContext, T>(TContext context, IDbSet<T> _set)
+		public static IEFBatchOperationBase<TBaseEntity> For<TContext, TBaseEntity>(
+			TContext dbContext, IDbSet<TBaseEntity> dbSet)
 			where TContext : DbContext
-			where T : class
+			where TBaseEntity : class
 		{
-			return EFBatchOperation<TContext, T>.For(context);
+			return new EFBatchOperation<TContext, TBaseEntity>(dbContext, dbSet);
 		}
 	}
 
-	public class EFBatchOperation<TContext, T> : IEFBatchOperationBase<T>, IEFBatchOperationFiltered<T>
-		where T : class
+	internal class EFBatchOperation<TContext, TBaseEntity> : IEFBatchOperationBase<TBaseEntity>, IEFBatchOperationFiltered<TBaseEntity>
 		where TContext : DbContext
+		where TBaseEntity : class
 	{
-		private readonly ObjectContext _context;
-		private readonly DbContext _dbContext;
-		private Expression<Func<T, bool>> _predicate;
-		private string _deleteTopExpression;
+		private readonly TContext dbContext;
+		private readonly IDbSet<TBaseEntity> dbSet;
+		private readonly ObjectContext objectContext;
+		private readonly Expression<Func<TBaseEntity, bool>> predicate;
 
-		private EFBatchOperation(TContext context)
+		public EFBatchOperation(
+			TContext dbContext, IDbSet<TBaseEntity> dbSet)
 		{
-			_dbContext = context;
-			_context = (context as IObjectContextAdapter).ObjectContext;
+			this.dbContext = dbContext;
+			this.dbSet = dbSet;
+			this.objectContext = ((IObjectContextAdapter)dbContext).ObjectContext;
 		}
 
-		public static IEFBatchOperationBase<T> For(TContext context)
+		public EFBatchOperation(
+			TContext dbContext, IDbSet<TBaseEntity> dbSet, Expression<Func<TBaseEntity, bool>> predicate)
 		{
-			return new EFBatchOperation<TContext, T>(context);
+			this.dbContext = dbContext;
+			this.dbSet = dbSet;
+			this.objectContext = ((IObjectContextAdapter)dbContext).ObjectContext;
+			this.predicate = predicate;
 		}
 
-		public void InsertAll<TEntity>(
-			IEnumerable<TEntity> items, DbConnection connection = null, int? batchSize = null,
-			int? executeTimeout = null, SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default,
-			DbTransaction transaction = null)
-			where TEntity : class, T
+		public int InsertAll<TEntity>(
+			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default)
+			where TEntity : class, TBaseEntity
 		{
-			var con = _context.Connection as EntityConnection;
-			if (con == null && connection == null)
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanInsert && p.CanHandle(this.dbContext));
+
+			if (provider == null)
 			{
-				Configuration.Log("No provider could be found because the Connection didn't implement System.Data.EntityClient.EntityConnection");
-				Fallbacks.DefaultInsertAll(_context, items);
-				return;
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the InsertAll operation was found.");
+
+				return Fallbacks.DefaultInsertAll(this.dbContext, this.dbSet, items);
 			}
 
-			var connectionToUse = connection ?? con.StoreConnection;
-			var currentType = typeof(TEntity);
-			var provider = Configuration.Providers.FirstOrDefault(p => p.CanHandle(connectionToUse));
-
-			if (provider == null || !provider.CanInsert)
-			{
-				Configuration.Log("Found provider: " + (provider?.GetType().Name ?? "[]") + " for " + connectionToUse.GetType().Name);
-				Fallbacks.DefaultInsertAll(_context, items);
-
-				return;
-			}
-
-			var mapping = EfMappingFactory.GetMappingsForContext(_dbContext);
-			var typeMapping = mapping.TypeMappings[typeof(T)];
+			var mapping = EfMappingFactory.GetMappingsForContext(this.objectContext);
+			var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
 			var tableMapping = typeMapping.TableMappings.First();
+			var currentType = typeof(TEntity);
 
 			var properties = tableMapping.PropertyMappings
 				.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
@@ -87,40 +83,63 @@ namespace EntityFramework.Utilities
 				});
 			}
 
-			provider.InsertItems(
-				items, tableMapping.Schema, tableMapping.TableName, properties, connectionToUse, batchSize,
-				executeTimeout, copyOptions, transaction);
+			return provider.InsertItems(
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, batchSize,
+				sqlBulkCopyOptions);
 		}
 
-		public void UpdateAll<TEntity>(
-			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
-			DbConnection connection = null, int? batchSize = null, int? executeTimeout = null,
-			SqlBulkCopyOptions copyOptions = SqlBulkCopyOptions.Default, DbTransaction transaction = null,
-			bool insertIfNotMatched = false, bool deleteIfNotMatched = false)
-			where TEntity : class, T
+		public Task<int> InsertAllAsync<TEntity>(
+			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default,
+			CancellationToken cancellationToken = default)
+			where TEntity : class, TBaseEntity
 		{
-			var con = _context.Connection as EntityConnection;
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanInsert && p.CanHandle(this.dbContext));
 
-			if (con == null && connection == null)
-				throw new InvalidOperationException("No provider supporting the Update operation for this data source was found");
-
-			var connectionToUse = connection ?? con.StoreConnection;
-			var currentType = typeof(TEntity);
-			var provider = Configuration.Providers.FirstOrDefault(p => p.CanHandle(connectionToUse));
-
-			if (provider == null && con != null)
-				provider = Configuration.Providers.FirstOrDefault(p => p.CanHandle(con.StoreConnection));
-
-			if (provider == null || !provider.CanBulkUpdate)
+			if (provider == null)
 			{
-				Configuration.Log("Found provider: " + (provider?.GetType().Name ?? "[]") + " for " + connectionToUse.GetType().Name);
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the InsertAll operation was found.");
 
-				throw new InvalidOperationException("No provider supporting the Update operation for this data source was found");
+				return Fallbacks.DefaultInsertAllAsync(this.dbContext, this.dbSet, items, cancellationToken);
 			}
 
-			var mapping = EfMappingFactory.GetMappingsForContext(_dbContext);
-			var typeMapping = mapping.TypeMappings[typeof(T)];
+			var mapping = EfMappingFactory.GetMappingsForContext(this.objectContext);
+			var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
 			var tableMapping = typeMapping.TableMappings.First();
+			var currentType = typeof(TEntity);
+
+			var properties = tableMapping.PropertyMappings
+				.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
+				.Where(p => p.IsComputed == false)
+				.Select(p => new ColumnMapping { NameInDatabase = p.ColumnName, NameOnObject = p.PropertyName })
+				.ToList();
+
+			if (tableMapping.TphConfiguration != null)
+			{
+				properties.Add(new ColumnMapping
+				{
+					NameInDatabase = tableMapping.TphConfiguration.ColumnName,
+					StaticValue = tableMapping.TphConfiguration.Mappings[typeof(TEntity)]
+				});
+			}
+
+			return provider.InsertItemsAsync(
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, batchSize,
+				sqlBulkCopyOptions, cancellationToken);
+		}
+
+		public int UpdateAll<TEntity>(
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
+			bool insertIfNotMatched = false, bool deleteIfNotMatched = false)
+			where TEntity : class, TBaseEntity
+		{
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkUpdate && p.CanHandle(this.dbContext))
+				?? throw new InvalidOperationException("No provider supporting the UpdateAll operation was found.");
+
+			var mapping = EfMappingFactory.GetMappingsForContext(this.objectContext);
+			var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
+			var tableMapping = typeMapping.TableMappings.First();
+			var currentType = typeof(TEntity);
 
 			var properties = tableMapping.PropertyMappings
 				.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
@@ -138,98 +157,175 @@ namespace EntityFramework.Utilities
 			var spec = new UpdateSpecification<TEntity>();
 			updateSpecification(spec);
 
-			var insertConnection = !(connectionToUse is SqlConnection) && con?.StoreConnection is SqlConnection
-				? con.StoreConnection
-				: connectionToUse;
-
-			provider.UpdateItems(
-				items, tableMapping.Schema, tableMapping.TableName, properties, connectionToUse, batchSize, spec,
-				executeTimeout, copyOptions, transaction, insertConnection, insertIfNotMatched, deleteIfNotMatched);
+			return provider.UpdateItems(
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, batchSize,
+				insertIfNotMatched, deleteIfNotMatched);
 		}
 
-		public IEFBatchOperationFiltered<T> Where(Expression<Func<T, bool>> predicate)
+		public Task<int> UpdateAllAsync<TEntity>(
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
+			bool insertIfNotMatched = false, bool deleteIfNotMatched = false,
+			CancellationToken cancellationToken = default)
+			where TEntity : class, TBaseEntity
 		{
-			_predicate = predicate;
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkUpdate && p.CanHandle(this.dbContext))
+				?? throw new InvalidOperationException("No provider supporting the UpdateAll operation was found");
 
-			return this;
+			var mapping = EfMappingFactory.GetMappingsForContext(this.objectContext);
+			var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
+			var tableMapping = typeMapping.TableMappings.First();
+			var currentType = typeof(TEntity);
+
+			var properties = tableMapping.PropertyMappings
+				.Where(p => p.ForEntityType == currentType || currentType.IsSubclassOf(p.ForEntityType))
+				.Where(p => p.IsComputed == false)
+				.Select(p => new ColumnMapping
+				{
+					NameInDatabase = p.ColumnName,
+					NameOnObject = p.PropertyName,
+					DataType = p.DataType,
+					DataTypeFull = p.DataTypeFull,
+					IsPrimaryKey = p.IsPrimaryKey,
+				})
+				.ToList();
+
+			var spec = new UpdateSpecification<TEntity>();
+			updateSpecification(spec);
+
+			return provider.UpdateItemsAsync(
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, batchSize,
+				insertIfNotMatched, deleteIfNotMatched, cancellationToken);
 		}
 
-		public int DeleteTop(int numberOfRows, DbConnection connection = null)
+		public IEFBatchOperationFiltered<TBaseEntity> Where(
+			Expression<Func<TBaseEntity, bool>> predicate)
 		{
-			_deleteTopExpression = $"TOP ({numberOfRows})";
-
-			return this.Delete(connection);
+			return new EFBatchOperation<TContext, TBaseEntity>(this.dbContext, this.dbSet, predicate);
 		}
 
-		public int DeleteTopPercent(double percentOfRows, DbConnection connection = null)
+		public int DeleteTop(
+			int numberOfRows, TransactionalBehavior? transactionalBehavior = null)
 		{
-			_deleteTopExpression = $"TOP ({percentOfRows.ToString(CultureInfo.InvariantCulture)}) PERCENT";
+			var topExpression = $"TOP ({numberOfRows})";
 
-			return this.Delete(connection);
+			return this.Delete(transactionalBehavior, topExpression);
 		}
 
-		public int Delete(DbConnection connection = null)
+		public Task<int> DeleteTopAsync(
+			int numberOfRows, TransactionalBehavior? transactionalBehavior = null,
+			CancellationToken cancellationToken = default)
 		{
-			var con = _context.Connection as EntityConnection;
+			var topExpression = $"TOP ({numberOfRows})";
 
-			if (con == null && connection == null)
+			return this.DeleteAsync(transactionalBehavior, topExpression, cancellationToken);
+		}
+
+		public int DeleteTopPercent(
+			double percentOfRows, TransactionalBehavior? transactionalBehavior = null)
+		{
+			var topExpression = $"TOP ({percentOfRows.ToString(CultureInfo.InvariantCulture)}) PERCENT";
+
+			return this.Delete(transactionalBehavior, topExpression);
+		}
+
+		public Task<int> DeleteTopPercentAsync(
+			double percentOfRows, TransactionalBehavior? transactionalBehavior = null,
+			CancellationToken cancellationToken = default)
+		{
+			var topExpression = $"TOP ({percentOfRows.ToString(CultureInfo.InvariantCulture)}) PERCENT";
+
+			return this.DeleteAsync(transactionalBehavior, topExpression, cancellationToken);
+		}
+
+		public int Delete(
+			TransactionalBehavior? transactionalBehavior = null)
+		{
+			return this.Delete(transactionalBehavior, topExpression: null);
+		}
+
+		public Task<int> DeleteAsync(
+			TransactionalBehavior? transactionalBehavior = null, CancellationToken cancellationToken = default)
+		{
+			return this.DeleteAsync(transactionalBehavior, topExpression: null, cancellationToken);
+		}
+
+		private int Delete(
+			TransactionalBehavior? transactionalBehavior, string topExpression)
+		{
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanDelete && p.CanHandle(this.dbContext));
+
+			if (provider == null)
 			{
-				Configuration.Log("No provider could be found because the Connection didn't implement System.Data.EntityClient.EntityConnection");
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the Delete operation was found.");
 
-				return Fallbacks.DefaultDelete(_context, _predicate);
+				return Fallbacks.DefaultDelete(this.dbContext, this.dbSet, this.predicate);
 			}
 
-			var connectionToUse = connection ?? con.StoreConnection;
-
-			var provider = Configuration.Providers.FirstOrDefault(p => p.CanHandle(connectionToUse));
-
-			if (provider == null || !provider.CanDelete)
-			{
-				Configuration.Log("Found provider: " + (provider?.GetType().Name ?? "[]") + " for " + connectionToUse.GetType().Name);
-
-				return Fallbacks.DefaultDelete(_context, _predicate);
-			}
-
-			var set = _context.CreateObjectSet<T>();
-			var query = (ObjectQuery<T>)set.Where(_predicate);
+			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
+			var query = (ObjectQuery<TBaseEntity>)set.Where(this.predicate);
 			var queryInformation = provider.GetQueryInformation(query);
-			queryInformation.TopExpression = _deleteTopExpression;
+			queryInformation.TopExpression = topExpression;
 
 			var delete = provider.GetDeleteQuery(queryInformation);
 			var parameters = query.Parameters.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name }).ToArray<object>();
 
-			return _context.ExecuteStoreCommand(delete, parameters);
+			if (transactionalBehavior != null)
+				return this.objectContext.ExecuteStoreCommand(transactionalBehavior.Value, delete, parameters);
+			else
+				return this.objectContext.ExecuteStoreCommand(delete, parameters);
 		}
 
-		public int Update<TP>(Expression<Func<T, TP>> prop, Expression<Func<T, TP>> modifier, DbConnection connection = null)
+		private Task<int> DeleteAsync(
+			TransactionalBehavior? transactionalBehavior, string topExpression,
+			CancellationToken cancellationToken = default)
 		{
-			var con = _context.Connection as EntityConnection;
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanDelete && p.CanHandle(this.dbContext));
 
-			if (con == null && connection == null)
+			if (provider == null)
 			{
-				Configuration.Log("No provider could be found because the Connection didn't implement System.Data.EntityClient.EntityConnection");
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the Delete operation was found.");
 
-				return Fallbacks.DefaultUpdate(_context, _predicate, prop, modifier);
+				return Fallbacks.DefaultDeleteAsync(this.dbContext, this.dbSet, this.predicate, cancellationToken);
 			}
 
-			var connectionToUse = connection ?? con.StoreConnection;
-			var provider = Configuration.Providers.FirstOrDefault(p => p.CanHandle(connectionToUse));
+			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
+			var query = (ObjectQuery<TBaseEntity>)set.Where(this.predicate);
+			var queryInformation = provider.GetQueryInformation(query);
+			queryInformation.TopExpression = topExpression;
 
-			if (provider == null || !provider.CanUpdate)
+			var delete = provider.GetDeleteQuery(queryInformation);
+			var parameters = query.Parameters.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name }).ToArray<object>();
+
+			if (transactionalBehavior != null)
+				return this.objectContext.ExecuteStoreCommandAsync(transactionalBehavior.Value, delete, cancellationToken, parameters);
+			else
+				return this.objectContext.ExecuteStoreCommandAsync(delete, cancellationToken, parameters);
+		}
+
+		public int Update<TP>(
+			Expression<Func<TBaseEntity, TP>> prop, Expression<Func<TBaseEntity, TP>> modifier,
+			TransactionalBehavior? transactionalBehavior = null)
+		{
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanUpdate && p.CanHandle(this.dbContext));
+
+			if (provider == null)
 			{
-				Configuration.Log("Found provider: " + (provider?.GetType().Name ?? "[]") + " for " + connectionToUse.GetType().Name);
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the Update operation was found.");
 
-				return Fallbacks.DefaultUpdate(_context, _predicate, prop, modifier);
+				return Fallbacks.DefaultUpdate(this.dbContext, this.dbSet, this.predicate, prop, modifier);
 			}
 
-			var set = _context.CreateObjectSet<T>();
+			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
 
-			var query = (ObjectQuery<T>)set.Where(_predicate);
+			var query = (ObjectQuery<TBaseEntity>)set.Where(this.predicate);
 			var queryInformation = provider.GetQueryInformation(query);
 
 			var updateExpression = ExpressionHelper.CombineExpressions(prop, modifier);
 
-			var mquery = (ObjectQuery<T>)_context.CreateObjectSet<T>().Where(updateExpression);
+			var mquery = (ObjectQuery<TBaseEntity>)this.objectContext.CreateObjectSet<TBaseEntity>().Where(updateExpression);
 			var mqueryInfo = provider.GetQueryInformation(mquery);
 
 			var update = provider.GetUpdateQuery(queryInformation, mqueryInfo);
@@ -239,7 +335,48 @@ namespace EntityFramework.Utilities
 				.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name })
 				.ToArray<object>();
 
-			return _context.ExecuteStoreCommand(update, parameters);
+			if (transactionalBehavior != null)
+				return this.objectContext.ExecuteStoreCommand(transactionalBehavior.Value, update, parameters);
+			else
+				return this.objectContext.ExecuteStoreCommand(update, parameters);
+		}
+
+		public Task<int> UpdateAsync<TP>(
+			Expression<Func<TBaseEntity, TP>> prop, Expression<Func<TBaseEntity, TP>> modifier,
+			TransactionalBehavior? transactionalBehavior = null, CancellationToken cancellationToken = default)
+		{
+			var provider = Configuration.Providers.FirstOrDefault(p => p.CanUpdate && p.CanHandle(this.dbContext));
+
+			if (provider == null)
+			{
+				if (Configuration.DisableDefaultFallback)
+					throw new InvalidOperationException("No provider supporting the Update operation was found.");
+
+				return Fallbacks.DefaultUpdateAsync(
+					this.dbContext, this.dbSet, this.predicate, prop, modifier, cancellationToken);
+			}
+
+			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
+
+			var query = (ObjectQuery<TBaseEntity>)set.Where(this.predicate);
+			var queryInformation = provider.GetQueryInformation(query);
+
+			var updateExpression = ExpressionHelper.CombineExpressions(prop, modifier);
+
+			var mquery = (ObjectQuery<TBaseEntity>)this.objectContext.CreateObjectSet<TBaseEntity>().Where(updateExpression);
+			var mqueryInfo = provider.GetQueryInformation(mquery);
+
+			var update = provider.GetUpdateQuery(queryInformation, mqueryInfo);
+
+			var parameters = query.Parameters
+				.Concat(mquery.Parameters)
+				.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name })
+				.ToArray<object>();
+
+			if (transactionalBehavior != null)
+				return this.objectContext.ExecuteStoreCommandAsync(transactionalBehavior.Value, update, cancellationToken, parameters);
+			else
+				return this.objectContext.ExecuteStoreCommandAsync(update, cancellationToken, parameters);
 		}
 	}
 }

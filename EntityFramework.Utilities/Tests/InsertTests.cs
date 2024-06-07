@@ -26,7 +26,7 @@ namespace Tests
 				{
 					Contact.Build("FN1", "LN1", "Director"),
 					Contact.Build("FN2", "LN2", "Associate"),
-					Contact.Build("FN3", "LN3", "Vice President")
+					Contact.Build("FN3", "LN3", "Vice President"),
 				};
 
 				EFBatchOperation.For(db, db.People).InsertAll(people);
@@ -57,7 +57,7 @@ namespace Tests
 				{
 					Person.Build("FN1", "LN1"),
 					Person.Build("FN2", "LN2"),
-					Person.Build("FN3", "LN3")
+					Person.Build("FN3", "LN3"),
 				};
 
 				EFBatchOperation.For(db, db.People).InsertAll(people);
@@ -87,7 +87,7 @@ namespace Tests
 				{
 					BlogPost.Create("T1"),
 					BlogPost.Create("T2"),
-					BlogPost.Create("T3")
+					BlogPost.Create("T3"),
 				};
 
 				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
@@ -116,9 +116,10 @@ namespace Tests
 				{
 					BlogPost.Create("T1"),
 					BlogPost.Create("T2"),
-					BlogPost.Create("T3")
+					BlogPost.Create("T3"),
 				};
-				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list, db.Database.Connection);
+
+				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
 			}
 
 			using (var db = Context.Sql())
@@ -146,7 +147,7 @@ namespace Tests
 				{
 					BlogPost.Create("T1"),
 					BlogPost.Create("T2"),
-					BlogPost.Create("T3")
+					BlogPost.Create("T3"),
 				};
 
 				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
@@ -179,7 +180,7 @@ namespace Tests
 				{
 					RenamedAndReorderedBlogPost.Create("T1"),
 					RenamedAndReorderedBlogPost.Create("T2"),
-					RenamedAndReorderedBlogPost.Create("T3")
+					RenamedAndReorderedBlogPost.Create("T3"),
 				};
 
 				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
@@ -210,10 +211,10 @@ namespace Tests
 
 			var list = new List<BlogPost>
 			{
-					BlogPost.Create("T1"),
-					BlogPost.Create("T2"),
-					BlogPost.Create("T3")
-				};
+				BlogPost.Create("T1"),
+				BlogPost.Create("T2"),
+				BlogPost.Create("T3"),
+			};
 
 			using (var db = Context.SqlCe())
 			{
@@ -249,7 +250,7 @@ namespace Tests
 				var comments = new List<Comment>
 				{
 					new Comment{Text = "C1", PostId = bp.Id },
-					new Comment{Text = "C2", PostId = bp.Id }
+					new Comment{Text = "C2", PostId = bp.Id },
 				};
 
 				EFBatchOperation.For(db, db.Comments).InsertAll(comments);

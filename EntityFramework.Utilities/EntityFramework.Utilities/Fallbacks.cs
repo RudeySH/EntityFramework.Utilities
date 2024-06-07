@@ -1,68 +1,83 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Entity.Core.Objects;
+using System.Data.Entity;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
 	internal class Fallbacks
 	{
-		internal static void DefaultInsertAll<T>(ObjectContext context, IEnumerable<T> items) where T : class
+		internal static int DefaultInsertAll<TEntity>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, IEnumerable<TEntity> items)
+			where TEntity : class
 		{
-			if (Configuration.DisableDefaultFallback)
-			{
-				throw new InvalidOperationException("No provider supporting the InsertAll operation for this data source was found");
-			}
-
-			var set = context.CreateObjectSet<T>();
-
 			foreach (var item in items)
-			{
-				set.AddObject(item);
-			}
+				dbSet.Add(item);
 
-			context.SaveChanges();
+			return dbContext.SaveChanges();
 		}
 
-		internal static int DefaultDelete<T>(ObjectContext context, System.Linq.Expressions.Expression<Func<T, bool>> predicate) where T : class
+		internal static Task<int> DefaultInsertAllAsync<TEntity>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, IEnumerable<TEntity> items, CancellationToken cancellationToken)
+			where TEntity : class
 		{
-			if (Configuration.DisableDefaultFallback)
-			{
-				throw new InvalidOperationException("No provider supporting the Delete operation for this data source was found");
-			}
-
-			var set = context.CreateObjectSet<T>();
-			var items = set.Where(predicate).ToList();
-
 			foreach (var item in items)
-			{
-				set.DeleteObject(item);
-			}
+				dbSet.Add(item);
 
-			context.SaveChanges();
-			return items.Count;
+			return dbContext.SaveChangesAsync(cancellationToken);
 		}
 
-		internal static int DefaultUpdate<T, TP>(ObjectContext context, System.Linq.Expressions.Expression<Func<T, bool>> predicate, System.Linq.Expressions.Expression<Func<T, TP>> prop, System.Linq.Expressions.Expression<Func<T, TP>> modifier) where T : class
+		internal static int DefaultDelete<TEntity>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, Expression<Func<TEntity, bool>> predicate)
+			where TEntity : class
 		{
-			if (Configuration.DisableDefaultFallback)
-			{
-				throw new InvalidOperationException("No provider supporting the Update operation for this data source was found");
-			}
+			foreach (var item in dbSet.Where(predicate))
+				dbSet.Add(item);
 
-			var set = context.CreateObjectSet<T>();
-			var items = set.Where(predicate).ToList();
+			return dbContext.SaveChanges();
+		}
 
+		internal static Task<int> DefaultDeleteAsync<TEntity>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, Expression<Func<TEntity, bool>> predicate,
+			CancellationToken cancellationToken)
+			where TEntity : class
+		{
+			foreach (var item in dbSet.Where(predicate))
+				dbSet.Remove(item);
+
+			return dbContext.SaveChangesAsync(cancellationToken);
+		}
+
+		internal static int DefaultUpdate<TEntity, TP>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, Expression<Func<TEntity, bool>> predicate,
+			Expression<Func<TEntity, TP>> prop, Expression<Func<TEntity, TP>> modifier)
+			where TEntity : class
+		{
 			var setter = ExpressionHelper.PropertyExpressionToSetter(prop);
 			var compiledModifer = modifier.Compile();
 
-			foreach (var item in items)
-			{
+			foreach (var item in dbSet.Where(predicate))
 				setter(item, compiledModifer(item));
-			}
 
-			context.SaveChanges();
-			return items.Count;
+			return dbContext.SaveChanges();
+		}
+
+		internal static Task<int> DefaultUpdateAsync<TEntity, TP>(
+			DbContext dbContext, IDbSet<TEntity> dbSet, Expression<Func<TEntity, bool>> predicate,
+			Expression<Func<TEntity, TP>> prop, Expression<Func<TEntity, TP>> modifier,
+			CancellationToken cancellationToken)
+			where TEntity : class
+		{
+			var setter = ExpressionHelper.PropertyExpressionToSetter(prop);
+			var compiledModifer = modifier.Compile();
+
+			foreach (var item in dbSet.Where(predicate))
+				setter(item, compiledModifer(item));
+
+			return dbContext.SaveChangesAsync(cancellationToken);
 		}
 	}
 }

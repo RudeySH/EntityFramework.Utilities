@@ -13,6 +13,7 @@ namespace EntityFramework.Utilities
 		public UpdateSpecification<T> ColumnsToUpdate(params Expression<Func<T, object>>[] properties)
 		{
 			Properties = properties;
+
 			return this;
 		}
 

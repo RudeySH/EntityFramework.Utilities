@@ -493,15 +493,17 @@ namespace Tests
 				BirthDate = DateTime.Today,
 				PhoneNumbers = new List<PhoneNumber>
 				{
-					   new PhoneNumber{
-						   Id = Guid.NewGuid(),
-						   Number = "10134"
-					   },
-					   new PhoneNumber{
-						   Id = Guid.NewGuid(),
-						   Number = "15678"
-					   }
-					}
+					new PhoneNumber
+					{
+						Id = Guid.NewGuid(),
+						Number = "10134",
+					},
+					new PhoneNumber
+					{
+						Id = Guid.NewGuid(),
+						Number = "15678",
+					},
+				},
 			});
 			db.Contacts.Add(new Contact
 			{
@@ -512,20 +514,22 @@ namespace Tests
 				BirthDate = DateTime.Today,
 				PhoneNumbers = new List<PhoneNumber>
 				{
-					   new PhoneNumber{
-						   Id = Guid.NewGuid(),
-						   Number = "20134"
-					   },
-					   new PhoneNumber{
-						   Id = Guid.NewGuid(),
-						   Number = "25678"
-					   }
+					new PhoneNumber
+					{
+						Id = Guid.NewGuid(),
+						Number = "20134",
 					},
+					new PhoneNumber
+					{
+						Id = Guid.NewGuid(),
+						Number = "25678",
+					},
+				},
 				Emails = new List<Email>
 				{
-					new Email{Id = Guid.NewGuid(), Address = "m21@mail.com" },
-					new Email{Id = Guid.NewGuid(), Address = "m22@mail.com" }
-				}
+					new Email { Id = Guid.NewGuid(), Address = "m21@mail.com" },
+					new Email { Id = Guid.NewGuid(), Address = "m22@mail.com" },
+				},
 			});
 			db.Contacts.Add(new Contact
 			{
@@ -536,33 +540,33 @@ namespace Tests
 				BirthDate = DateTime.Today,
 				Emails = new List<Email>
 				{
-					new Email{Id = Guid.NewGuid(), Address = "m31@mail.com" },
-					new Email{Id = Guid.NewGuid(), Address = "m32@mail.com" }
-				}
+					new Email { Id = Guid.NewGuid(), Address = "m31@mail.com" },
+					new Email { Id = Guid.NewGuid(), Address = "m32@mail.com" },
+				},
 			});
 
 			var blogPost1 = BlogPost.Create("BP1");
 			blogPost1.Comments = new List<Comment>
 			{
-					new Comment { Text = "C1" }
-				};
+				new Comment { Text = "C1" },
+			};
 			db.BlogPosts.Add(blogPost1);
 
 			var blogPost2 = BlogPost.Create("BP2");
 			blogPost2.Comments = new List<Comment>
 			{
-					new Comment { Text = "C2" },
-					new Comment { Text = "C3" }
-				};
+				new Comment { Text = "C2" },
+				new Comment { Text = "C3" },
+			};
 			db.BlogPosts.Add(blogPost2);
 
 			var blogPost3 = BlogPost.Create("BP3");
 			blogPost3.Comments = new List<Comment>
 			{
-					new Comment { Text = "C4" },
-					new Comment { Text = "C5" },
-					new Comment { Text = "C6" }
-				};
+				new Comment { Text = "C4" },
+				new Comment { Text = "C5" },
+				new Comment { Text = "C6" },
+			};
 			db.BlogPosts.Add(blogPost3);
 
 			db.SaveChanges();

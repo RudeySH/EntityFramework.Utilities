@@ -1,17 +1,39 @@
 ﻿using System;
-using System.Data.Common;
+using System.Data.Entity;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
 	public interface IEFBatchOperationFiltered<T>
 	{
-		int Delete(DbConnection connection = null);
+		int Delete(
+			TransactionalBehavior? transactionalBehavior = null);
 
-		int DeleteTop(int numberOfRows, DbConnection connection = null);
+		Task<int> DeleteAsync(
+			TransactionalBehavior? transactionalBehavior = null, CancellationToken cancellationToken = default);
 
-		int DeleteTopPercent(double numberOfRows, DbConnection connection = null);
+		int DeleteTop(
+			int numberOfRows, TransactionalBehavior? transactionalBehavior = null);
 
-		int Update<TP>(Expression<Func<T, TP>> prop, Expression<Func<T, TP>> modifier, DbConnection connection = null);
+		Task<int> DeleteTopAsync(
+			int numberOfRows, TransactionalBehavior? transactionalBehavior = null,
+			CancellationToken cancellationToken = default);
+
+		int DeleteTopPercent(
+			double numberOfRows, TransactionalBehavior? transactionalBehavior = null);
+
+		Task<int> DeleteTopPercentAsync(
+			double numberOfRows, TransactionalBehavior? transactionalBehavior = null,
+			CancellationToken cancellationToken = default);
+
+		int Update<TP>(
+			Expression<Func<T, TP>> prop, Expression<Func<T, TP>> modifier,
+			TransactionalBehavior? transactionalBehavior = null);
+
+		Task<int> UpdateAsync<TP>(
+			Expression<Func<T, TP>> prop, Expression<Func<T, TP>> modifier,
+			TransactionalBehavior? transactionalBehavior = null, CancellationToken cancellationToken = default);
 	}
 }

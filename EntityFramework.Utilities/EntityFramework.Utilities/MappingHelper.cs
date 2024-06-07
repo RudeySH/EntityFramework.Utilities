@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.Data.Entity.Core.Mapping;
 using System.Data.Entity.Core.Metadata.Edm;
-using System.Data.Entity.Infrastructure;
+using System.Data.Entity.Core.Objects;
 using System.Linq;
 
 namespace EntityFramework.Utilities
@@ -59,6 +58,7 @@ namespace EntityFramework.Utilities
 	public class TphConfiguration
 	{
 		public Dictionary<Type, string> Mappings { get; set; }
+
 		public string ColumnName { get; set; }
 	}
 
@@ -87,6 +87,7 @@ namespace EntityFramework.Utilities
 		public bool IsPrimaryKey { get; set; }
 
 		public string DataTypeFull { get; set; }
+
 		public bool IsComputed { get; set; }
 	}
 
@@ -103,12 +104,12 @@ namespace EntityFramework.Utilities
 		/// <summary>
 		/// Initializes an instance of the EfMapping class
 		/// </summary>
-		/// <param name="db">The context to get the mapping from</param>
-		public EfMapping(IObjectContextAdapter db)
+		/// <param name="context">The context to get the mapping from</param>
+		public EfMapping(ObjectContext context)
 		{
 			TypeMappings = new Dictionary<Type, TypeMapping>();
 
-			var metadata = db.ObjectContext.MetadataWorkspace;
+			var metadata = context.MetadataWorkspace;
 
 			//EF61Test(metadata);
 
@@ -251,9 +252,9 @@ namespace EntityFramework.Utilities
 		private static Type GetClrType(MetadataWorkspace metadata, ObjectItemCollection objectItemCollection, EntityTypeBase type)
 		{
 			return metadata
-				   .GetItems<EntityType>(DataSpace.OSpace)
-				   .Select(objectItemCollection.GetClrType)
-				   .Single(e => e.Name == type.Name);
+				.GetItems<EntityType>(DataSpace.OSpace)
+				.Select(objectItemCollection.GetClrType)
+				.Single(e => e.Name == type.Name);
 		}
 	}
 
@@ -261,7 +262,7 @@ namespace EntityFramework.Utilities
 	{
 		private static readonly Dictionary<Type, EfMapping> Cache = new Dictionary<Type, EfMapping>();
 
-		public static EfMapping GetMappingsForContext(DbContext context)
+		public static EfMapping GetMappingsForContext(ObjectContext context)
 		{
 			var type = context.GetType();
 

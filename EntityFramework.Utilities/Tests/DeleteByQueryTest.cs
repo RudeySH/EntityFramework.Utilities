@@ -246,7 +246,7 @@ namespace Tests
 
 			using (var db = Context.Sql())
 			{
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete(db.Database.Connection);
+				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete();
 				Assert.AreEqual(2, count);
 			}
 
