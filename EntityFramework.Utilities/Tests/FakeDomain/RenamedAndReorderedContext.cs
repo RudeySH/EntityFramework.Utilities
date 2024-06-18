@@ -1,5 +1,6 @@
 ﻿using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
+using System.Threading.Tasks;
 using Tests.Models;
 
 namespace Tests.FakeDomain
@@ -7,7 +8,7 @@ namespace Tests.FakeDomain
 	public class RenamedAndReorderedContext : DbContext
 	{
 		public RenamedAndReorderedContext()
-			: base(ConnectionStringReader.ConnectionStrings.SqlServer)
+			: base(ConnectionStringsFixture.ConnectionStrings.SqlServer)
 		{
 			Database.DefaultConnectionFactory = new SqlConnectionFactory("System.Data.SqlServer");
 			Database.SetInitializer(new CreateDatabaseIfNotExists<RenamedAndReorderedContext>());
@@ -39,6 +40,21 @@ namespace Tests.FakeDomain
 				db.Database.Create();
 				db.Database.ExecuteSqlCommand("drop table dbo.RenamedAndReorderedBlogPosts;");
 				db.Database.ExecuteSqlCommand(RenamedAndReorderedBlogPost.CreateTableSql());
+			}
+		}
+
+		public static async Task SetupTestDbAsync()
+		{
+			using (var db = new RenamedAndReorderedContext())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+				await db.Database.ExecuteSqlCommandAsync("drop table dbo.RenamedAndReorderedBlogPosts;");
+				await db.Database.ExecuteSqlCommandAsync(RenamedAndReorderedBlogPost.CreateTableSql());
 			}
 		}
 	}

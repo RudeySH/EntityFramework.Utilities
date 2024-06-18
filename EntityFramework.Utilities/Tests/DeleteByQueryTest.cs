@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Data.Entity;
 using System.Linq;
+using System.Threading.Tasks;
 using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tests.FakeDomain;
@@ -43,6 +45,39 @@ namespace Tests
 				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
 			}
 		}
+		[TestMethod]
+		public async Task DeleteAllAsync_PropertyEquals_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T2"));
+				db.BlogPosts.Add(BlogPost.Create("T2"));
+				db.BlogPosts.Add(BlogPost.Create("T3"));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").DeleteAsync();
+				Assert.AreEqual(2, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = await db.BlogPosts.ToListAsync();
+				Assert.AreEqual(2, posts.Count);
+				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+			}
+		}
 
 		[TestMethod]
 		public void DeleteAll_DateIsSmallerThan_DeletesAllMatchesAndNothingElse()
@@ -73,6 +108,40 @@ namespace Tests
 			using (var db = Context.Sql())
 			{
 				var posts = db.BlogPosts.ToList();
+				Assert.AreEqual(1, posts.Count);
+				Assert.AreEqual("T3", posts.First().Title);
+			}
+		}
+
+		[TestMethod]
+		public async Task DeleteAllAsync_DateIsSmallerThan_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+				db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(-1)));
+				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(1)));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var limit = DateTime.Today;
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < limit).DeleteAsync();
+				Assert.AreEqual(2, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = await db.BlogPosts.ToListAsync();
 				Assert.AreEqual(1, posts.Count);
 				Assert.AreEqual("T3", posts.First().Title);
 			}
@@ -114,6 +183,41 @@ namespace Tests
 		}
 
 		[TestMethod]
+		public async Task DeleteAllAsync_DateIsInRange_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+				db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(0)));
+				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var lower = DateTime.Today.AddDays(-1);
+				var upper = DateTime.Today.AddDays(1);
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower).DeleteAsync();
+				Assert.AreEqual(1, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = await db.BlogPosts.ToListAsync();
+				Assert.AreEqual(2, posts.Count);
+				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+			}
+		}
+
+		[TestMethod]
 		public void DeleteAll_DateIsInRangeAndTitleEquals_DeletesAllMatchesAndNothingElse()
 		{
 			using (var db = Context.Sql())
@@ -145,6 +249,43 @@ namespace Tests
 			using (var db = Context.Sql())
 			{
 				var posts = db.BlogPosts.ToList();
+				Assert.AreEqual(3, posts.Count);
+				Assert.AreEqual(0, posts.Count(p => p.Title == "T2.0"));
+			}
+		}
+
+		[TestMethod]
+		public async Task DeleteAllAsync_DateIsInRangeAndTitleEquals_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+				db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
+				db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
+				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var lower = DateTime.Today.AddDays(-1);
+				var upper = DateTime.Today.AddDays(1);
+
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").DeleteAsync();
+				Assert.AreEqual(1, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = await db.BlogPosts.ToListAsync();
 				Assert.AreEqual(3, posts.Count);
 				Assert.AreEqual(0, posts.Count(p => p.Title == "T2.0"));
 			}
@@ -192,6 +333,47 @@ namespace Tests
 		}
 
 		[TestMethod]
+		public async Task DeleteAllAsync_NoProvider_UsesDefaultDelete()
+		{
+			string fallbackText = null;
+			Configuration.DisableDefaultFallback = false;
+			Configuration.Log = str => fallbackText = str;
+
+			using (var db = Context.SqlCe())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+				db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
+				db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
+				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.SqlCe())
+			{
+				var lower = DateTime.Today.AddDays(-1);
+				var upper = DateTime.Today.AddDays(1);
+
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").DeleteAsync();
+				Assert.AreEqual(1, count);
+			}
+
+			using (var db = Context.SqlCe())
+			{
+				Assert.AreEqual(3, await db.BlogPosts.CountAsync());
+			}
+
+			Assert.IsNotNull(fallbackText);
+		}
+
+		[TestMethod]
 		public void DeleteAll_Top_DeletesAllMatchesAndNothingElse()
 		{
 			using (var db = Context.Sql())
@@ -214,6 +396,40 @@ namespace Tests
 			using (var db = Context.Sql())
 			{
 				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T1").DeleteTop(2);
+				Assert.AreEqual(2, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = db.BlogPosts.ToList();
+				Assert.AreEqual(3, posts.Count);
+				Assert.AreEqual(1, posts.Count(p => p.Title == "T2"));
+			}
+		}
+
+		[TestMethod]
+		public async Task DeleteAllAsync_Top_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T2"));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T1").DeleteTopAsync(2);
 				Assert.AreEqual(2, count);
 			}
 
@@ -253,6 +469,39 @@ namespace Tests
 			using (var db = Context.Sql())
 			{
 				var posts = db.BlogPosts.ToList();
+				Assert.AreEqual(2, posts.Count);
+				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+			}
+		}
+
+		[TestMethod]
+		public async Task DeleteAllAsync_PropertyEquals_WithExplicitConnection_DeletesAllMatchesAndNothingElse()
+		{
+			using (var db = Context.Sql())
+			{
+				if (db.Database.Exists())
+				{
+					db.Database.Delete();
+				}
+				db.Database.Create();
+
+				db.BlogPosts.Add(BlogPost.Create("T1"));
+				db.BlogPosts.Add(BlogPost.Create("T2"));
+				db.BlogPosts.Add(BlogPost.Create("T2"));
+				db.BlogPosts.Add(BlogPost.Create("T3"));
+
+				await db.SaveChangesAsync();
+			}
+
+			using (var db = Context.Sql())
+			{
+				var count = await EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").DeleteAsync(db.Database.Connection);
+				Assert.AreEqual(2, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				var posts = await db.BlogPosts.ToListAsync();
 				Assert.AreEqual(2, posts.Count);
 				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
 			}
