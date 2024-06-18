@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.Entity.Core.Objects;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
@@ -24,6 +25,23 @@ namespace EntityFramework.Utilities
 			context.SaveChanges();
 		}
 
+		internal static async Task DefaultInsertAllAsync<T>(ObjectContext context, IEnumerable<T> items) where T : class
+		{
+			if (Configuration.DisableDefaultFallback)
+			{
+				throw new InvalidOperationException("No provider supporting the InsertAll operation for this datasource was found");
+			}
+
+			var set = context.CreateObjectSet<T>();
+
+			foreach (var item in items)
+			{
+				set.AddObject(item);
+			}
+
+			await context.SaveChangesAsync().ConfigureAwait(false);
+		}
+
 		internal static int DefaultDelete<T>(ObjectContext context, System.Linq.Expressions.Expression<Func<T, bool>> predicate) where T : class
 		{
 			if (Configuration.DisableDefaultFallback)
@@ -40,6 +58,25 @@ namespace EntityFramework.Utilities
 			}
 
 			context.SaveChanges();
+			return items.Count;
+		}
+
+		internal static async Task<int> DefaultDeleteAsync<T>(ObjectContext context, System.Linq.Expressions.Expression<Func<T, bool>> predicate) where T : class
+		{
+			if (Configuration.DisableDefaultFallback)
+			{
+				throw new InvalidOperationException("No provider supporting the Delete operation for this datasource was found");
+			}
+
+			var set = context.CreateObjectSet<T>();
+			var items = set.Where(predicate).ToList();
+
+			foreach (var item in items)
+			{
+				set.DeleteObject(item);
+			}
+
+			await context.SaveChangesAsync().ConfigureAwait(false);
 			return items.Count;
 		}
 
@@ -62,6 +99,28 @@ namespace EntityFramework.Utilities
 			}
 
 			context.SaveChanges();
+			return items.Count;
+		}
+
+		internal static async Task<int> DefaultUpdateAsync<T, TP>(ObjectContext context, System.Linq.Expressions.Expression<Func<T, bool>> predicate, System.Linq.Expressions.Expression<Func<T, TP>> prop, System.Linq.Expressions.Expression<Func<T, TP>> modifier) where T : class
+		{
+			if (Configuration.DisableDefaultFallback)
+			{
+				throw new InvalidOperationException("No provider supporting the Update operation for this datasource was found");
+			}
+
+			var set = context.CreateObjectSet<T>();
+			var items = set.Where(predicate).ToList();
+
+			var setter = ExpressionHelper.PropertyExpressionToSetter(prop);
+			var compiledModifer = modifier.Compile();
+
+			foreach (var item in items)
+			{
+				setter(item, compiledModifer(item));
+			}
+
+			await context.SaveChangesAsync().ConfigureAwait(false);
 			return items.Count;
 		}
 	}
