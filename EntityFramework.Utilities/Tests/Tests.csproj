@@ -16,4 +16,10 @@
     <ProjectReference Include="..\EntityFramework.Utilities\EntityFramework.Utilities.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="connectionStrings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
