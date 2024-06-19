@@ -43,7 +43,7 @@ namespace Tests.FakeDomain
 			Database.SetInitializer<Context>(null);
 			Database.DefaultConnectionFactory = new SqlConnectionFactory("System.Data.SqlServer");
 
-			var ctx = new Context(ConnectionStringReader.ConnectionStrings.SqlServer);
+			var ctx = new Context(ConnectionStringsFixture.ConnectionStrings.SqlServer);
 			ctx.Configuration.ValidateOnSaveEnabled = false;
 			ctx.Configuration.LazyLoadingEnabled = false;
 			ctx.Configuration.ProxyCreationEnabled = false;
@@ -58,7 +58,7 @@ namespace Tests.FakeDomain
 			var def = Database.DefaultConnectionFactory;
 			Database.DefaultConnectionFactory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
 
-			var ctx = new Context(ConnectionStringReader.ConnectionStrings.SqlCe);
+			var ctx = new Context(ConnectionStringsFixture.ConnectionStrings.SqlCe);
 			ctx.Configuration.ValidateOnSaveEnabled = false;
 			ctx.Configuration.LazyLoadingEnabled = false;
 			ctx.Configuration.ProxyCreationEnabled = false;
