@@ -1,4 +1,4 @@
-using System.Data.Entity;
+﻿using System.Data.Entity;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
@@ -46,7 +46,7 @@ namespace EntityFramework.Utilities
 		}
 
 		public int InsertAll<TEntity>(
-			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default)
+			IEnumerable<TEntity> items, InsertAllOptions? options = null)
 			where TEntity : class, TBaseEntity
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanInsert && p.CanHandle(this.dbContext));
@@ -81,13 +81,11 @@ namespace EntityFramework.Utilities
 			}
 
 			return provider.InsertItems(
-				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, batchSize,
-				sqlBulkCopyOptions);
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, options);
 		}
 
 		public Task<int> InsertAllAsync<TEntity>(
-			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default,
-			CancellationToken cancellationToken = default)
+			IEnumerable<TEntity> items, InsertAllOptions? options = null, CancellationToken cancellationToken = default)
 			where TEntity : class, TBaseEntity
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanInsert && p.CanHandle(this.dbContext));
@@ -122,13 +120,13 @@ namespace EntityFramework.Utilities
 			}
 
 			return provider.InsertItemsAsync(
-				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, batchSize,
-				sqlBulkCopyOptions, cancellationToken);
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, options,
+				cancellationToken);
 		}
 
 		public int UpdateAll<TEntity>(
-			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
-			bool insertIfNotMatched = false, bool deleteIfNotMatched = false)
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
+			UpdateAllOptions? options = null)
 			where TEntity : class, TBaseEntity
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkUpdate && p.CanHandle(this.dbContext))
@@ -156,14 +154,12 @@ namespace EntityFramework.Utilities
 			updateSpecification(spec);
 
 			return provider.UpdateItems(
-				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, batchSize,
-				insertIfNotMatched, deleteIfNotMatched);
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, options);
 		}
 
 		public Task<int> UpdateAllAsync<TEntity>(
-			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
-			bool insertIfNotMatched = false, bool deleteIfNotMatched = false,
-			CancellationToken cancellationToken = default)
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
+			UpdateAllOptions? options = null, CancellationToken cancellationToken = default)
 			where TEntity : class, TBaseEntity
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkUpdate && p.CanHandle(this.dbContext))
@@ -191,8 +187,8 @@ namespace EntityFramework.Utilities
 			updateSpecification(spec);
 
 			return provider.UpdateItemsAsync(
-				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, batchSize,
-				insertIfNotMatched, deleteIfNotMatched, cancellationToken);
+				this.dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, options,
+				cancellationToken);
 		}
 
 		public IEFBatchOperationFiltered<TBaseEntity> Where(

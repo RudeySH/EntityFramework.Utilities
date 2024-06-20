@@ -1,4 +1,4 @@
-using System.Data.Entity;
+﻿using System.Data.Entity;
 using System.Data.Entity.Core.Objects;
 
 namespace EntityFramework.Utilities
@@ -19,22 +19,20 @@ namespace EntityFramework.Utilities
 
 		int InsertItems<T>(
 			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
-			IEnumerable<T> items, int? batchSize, SqlBulkCopyOptions sqlBulkCopyOptions);
+			IEnumerable<T> items, InsertAllOptions? options);
 
 		Task<int> InsertItemsAsync<T>(
 			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
-			IEnumerable<T> items, int? batchSize, SqlBulkCopyOptions sqlBulkCopyOptions,
-			CancellationToken cancellationToken);
+			IEnumerable<T> items, InsertAllOptions? options, CancellationToken cancellationToken);
 
 		int UpdateItems<T>(
 			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
-			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
-			bool deleteIfNotMatched);
+			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, UpdateAllOptions? options);
 
 		Task<int> UpdateItemsAsync<T>(
 			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
-			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
-			bool deleteIfNotMatched, CancellationToken cancellationToken);
+			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, UpdateAllOptions? options,
+			CancellationToken cancellationToken);
 
 		bool CanHandle(DbContext dbContext);
 

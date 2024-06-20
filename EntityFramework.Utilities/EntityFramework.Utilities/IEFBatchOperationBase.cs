@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities
 {
@@ -10,12 +10,9 @@ namespace EntityFramework.Utilities
 		/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
-		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
-		/// </param>
-		/// <param name="sqlBulkCopyOptions">The options for SqlBulkCopy which is used by the SqlQueryProvider.</param>
+		/// <param name="options">The options. For SQL Server, use <see cref="SqlInsertAllOptions"/>.</param>
 		int InsertAll<TEntity>(
-			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default)
+			IEnumerable<TEntity> items, InsertAllOptions? options = null)
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
@@ -23,14 +20,10 @@ namespace EntityFramework.Utilities
 		/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
-		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
-		/// </param>
-		/// <param name="sqlBulkCopyOptions">The options for SqlBulkCopy which is used by the SqlQueryProvider.</param>
+		/// <param name="options">The options. For SQL Server, use <see cref="SqlInsertAllOptions"/>.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		Task<int> InsertAllAsync<TEntity>(
-			IEnumerable<TEntity> items, int? batchSize = null, SqlBulkCopyOptions sqlBulkCopyOptions = default,
-			CancellationToken cancellationToken = default)
+			IEnumerable<TEntity> items, InsertAllOptions? options = null, CancellationToken cancellationToken = default)
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
@@ -38,19 +31,10 @@ namespace EntityFramework.Utilities
 		/// </summary>
 		/// <param name="items">The items to update.</param>
 		/// <param name="updateSpecification">Define which columns to update.</param>
-		/// <param name="insertIfNotMatched">
-		/// A boolean indicating whether or not to insert records that are in <paramref name="items"/> but not yet in
-		/// the database.
-		/// </param>
-		/// <param name="deleteIfNotMatched">
-		/// A boolean indicating whether or not to delete database records that are not in <paramref name="items"/>.
-		/// </param>
-		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
-		/// </param>
+		/// <param name="options">The options. For SQL Server, use <see cref="SqlUpdateAllOptions"/>.</param>
 		int UpdateAll<TEntity>(
-			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
-			bool insertIfNotMatched = false, bool deleteIfNotMatched = false)
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
+			UpdateAllOptions? options = null)
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
@@ -58,21 +42,11 @@ namespace EntityFramework.Utilities
 		/// </summary>
 		/// <param name="items">The items to update.</param>
 		/// <param name="updateSpecification">Define which columns to update.</param>
-		/// <param name="insertIfNotMatched">
-		/// A boolean indicating whether or not to insert records that are in <paramref name="items"/> but not yet in
-		/// the database.
-		/// </param>
-		/// <param name="deleteIfNotMatched">
-		/// A boolean indicating whether or not to delete database records that are not in <paramref name="items"/>.
-		/// </param>
-		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
-		/// </param>
+		/// <param name="options">The options. For SQL Server, use <see cref="SqlUpdateAllOptions"/>.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		Task<int> UpdateAllAsync<TEntity>(
-			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
-			bool insertIfNotMatched = false, bool deleteIfNotMatched = false,
-			CancellationToken cancellationToken = default)
+			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification,
+			UpdateAllOptions? options = null, CancellationToken cancellationToken = default)
 			where TEntity : class, TBaseEntity;
 
 		IEFBatchOperationFiltered<TBaseEntity> Where(
