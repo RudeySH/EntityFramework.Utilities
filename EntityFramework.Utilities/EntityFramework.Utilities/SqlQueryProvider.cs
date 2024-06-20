@@ -75,7 +75,7 @@ namespace EntityFramework.Utilities
 
 				using (var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction))
 				{
-					copy.BatchSize = batchSize ?? 1000;
+					copy.BatchSize = batchSize ?? 4000;
 					copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
 
 					if (!string.IsNullOrWhiteSpace(schema))
@@ -111,7 +111,7 @@ namespace EntityFramework.Utilities
 			{
 				using (var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction))
 				{
-					copy.BatchSize = batchSize ?? 1000;
+					copy.BatchSize = batchSize ?? 4000;
 					copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
 
 					if (!string.IsNullOrWhiteSpace(schema))

@@ -16,7 +16,7 @@ namespace EntityFramework.Utilities
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
 		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 1000 as default.
+		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
 		/// </param>
 		/// <param name="sqlBulkCopyOptions">The options for SqlBulkCopy which is used by the SqlQueryProvider.</param>
 		int InsertAll<TEntity>(
@@ -29,7 +29,7 @@ namespace EntityFramework.Utilities
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
 		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 1000 as default.
+		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
 		/// </param>
 		/// <param name="sqlBulkCopyOptions">The options for SqlBulkCopy which is used by the SqlQueryProvider.</param>
 		/// <param name="cancellationToken">The cancellation token.</param>
@@ -47,11 +47,11 @@ namespace EntityFramework.Utilities
 		/// A boolean indicating whether or not to insert records that are in <paramref name="items"/> but not yet in
 		/// the database.
 		/// </param>
-		/// <param name="insertIfNotMatched">
+		/// <param name="deleteIfNotMatched">
 		/// A boolean indicating whether or not to delete database records that are not in <paramref name="items"/>.
 		/// </param>
 		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 1000 as default.
+		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
 		/// </param>
 		int UpdateAll<TEntity>(
 			IEnumerable<TEntity> items, Action<UpdateSpecification<TEntity>> updateSpecification, int? batchSize = null,
@@ -67,11 +67,11 @@ namespace EntityFramework.Utilities
 		/// A boolean indicating whether or not to insert records that are in <paramref name="items"/> but not yet in
 		/// the database.
 		/// </param>
-		/// <param name="insertIfNotMatched">
+		/// <param name="deleteIfNotMatched">
 		/// A boolean indicating whether or not to delete database records that are not in <paramref name="items"/>.
 		/// </param>
 		/// <param name="batchSize">
-		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 1000 as default.
+		/// The size of each batch. Default depends on the provider. The SqlQueryProvider uses 4000 as default.
 		/// </param>
 		/// <param name="cancellationToken">The cancellation token.</param>
 		Task<int> UpdateAllAsync<TEntity>(
