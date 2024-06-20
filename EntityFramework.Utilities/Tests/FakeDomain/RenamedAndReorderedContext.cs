@@ -7,7 +7,7 @@ namespace Tests.FakeDomain
 	public class RenamedAndReorderedContext : DbContext
 	{
 		public RenamedAndReorderedContext()
-			: base(ConnectionStringReader.ConnectionStrings.SqlServer)
+			: base(ConnectionStringsFixture.ConnectionStrings.SqlServer)
 		{
 			Database.DefaultConnectionFactory = new SqlConnectionFactory("System.Data.SqlServer");
 			Database.SetInitializer(new CreateDatabaseIfNotExists<RenamedAndReorderedContext>());

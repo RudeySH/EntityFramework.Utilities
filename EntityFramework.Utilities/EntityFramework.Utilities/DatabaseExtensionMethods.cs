@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System.Data.Common;
+using System.Data.Entity;
 using System.Data.SqlClient;
 
 namespace EntityFramework.Utilities
@@ -9,7 +10,7 @@ namespace EntityFramework.Utilities
 		/// Deletes the database even if there are open connections. Like from Management Studio for example.
 		/// </summary>
 		/// <param name="db"></param>
-		/// <param name="name">The name of the database to drop. Should normally not be needed as that is read from the connection string</param>
+		/// <param name="name">The name of the database to drop. Should normally not be needed as that is read from the connection string.</param>
 		public static void ForceDelete(this Database db, string? name = null)
 		{
 			name ??= GetDatabaseName(db.Connection);
@@ -20,26 +21,18 @@ namespace EntityFramework.Utilities
 			// If you used master db as Initial Catalog, there is no need to change database.
 			sqlconnection.ChangeDatabase("master");
 
-			var nameParameter = new SqlParameter();
-			nameParameter.ParameterName = "@Name";
-			nameParameter.Value = name;
-
-			var rollbackCommand = @"ALTER DATABASE [@Name] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
+			var rollbackCommand = $"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
 
 			var deletecommand = new SqlCommand(rollbackCommand, sqlconnection);
-			deletecommand.Parameters.Add(nameParameter);
-
 			deletecommand.ExecuteNonQuery();
 
-			var deleteCommand = @"DROP DATABASE [@Name];";
+			var deleteCommand = $"DROP DATABASE [{name}];";
 
 			deletecommand = new SqlCommand(deleteCommand, sqlconnection);
-			deletecommand.Parameters.Add(nameParameter);
-
 			deletecommand.ExecuteNonQuery();
 		}
 
-		public static string GetDatabaseName(System.Data.Common.DbConnection dbConnection)
+		public static string GetDatabaseName(DbConnection dbConnection)
 		{
 			return new SqlConnectionStringBuilder(dbConnection.ConnectionString).InitialCatalog;
 		}

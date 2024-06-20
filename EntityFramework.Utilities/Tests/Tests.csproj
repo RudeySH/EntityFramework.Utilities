@@ -8,17 +8,31 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
     <AnalysisLevel>8.0</AnalysisLevel>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="EntityFramework.SqlServerCompact" Version="6.5.1" />
     <PackageReference Include="Microsoft.SqlServer.Compact" Version="4.0.8876.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.10" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.10" />
     <PackageReference Include="ServiceStack.Text" Version="6.0.2" />
+    <PackageReference Include="Testcontainers" Version="3.0.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\EntityFramework.Utilities\EntityFramework.Utilities.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="connectionStrings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="testSettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

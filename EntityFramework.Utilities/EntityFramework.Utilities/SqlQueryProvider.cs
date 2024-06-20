@@ -208,7 +208,9 @@ namespace EntityFramework.Utilities
 
 			await using (transaction.ConfigureAwait(false))
 #else
+#pragma warning disable IDE0063 // Use simple 'using' statement
 			using (var transaction = dbContext.Database.Connection.BeginTransaction())
+#pragma warning restore IDE0063 // Use simple 'using' statement
 #endif
 			{
 				// Create the temporary table.
