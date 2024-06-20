@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.1</TargetFrameworks>
     <AssemblyName>RudeySH.EFUtilities</AssemblyName>
+    <LangVersion>8.0</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

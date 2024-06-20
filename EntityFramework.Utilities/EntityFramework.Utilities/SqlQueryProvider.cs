@@ -73,25 +73,24 @@ namespace EntityFramework.Utilities
 				if (sqlConnection.State != ConnectionState.Open)
 					sqlConnection.Open();
 
-				using (var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction))
-				{
-					copy.BatchSize = batchSize ?? 4000;
-					copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
+				using var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction);
 
-					if (!string.IsNullOrWhiteSpace(schema))
-						copy.DestinationTableName = $"[{schema}].[{tableName}]";
-					else
-						copy.DestinationTableName = $"[{tableName}]";
+				copy.BatchSize = batchSize ?? 4000;
+				copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
 
-					copy.NotifyAfter = 0;
+				if (!string.IsNullOrWhiteSpace(schema))
+					copy.DestinationTableName = $"[{schema}].[{tableName}]";
+				else
+					copy.DestinationTableName = $"[{tableName}]";
 
-					for (var i = 0; i < reader.FieldCount; i++)
-						copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
+				copy.NotifyAfter = 0;
 
-					copy.WriteToServer(reader);
+				for (var i = 0; i < reader.FieldCount; i++)
+					copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
 
-					copy.Close();
-				}
+				copy.WriteToServer(reader);
+
+				copy.Close();
 			}
 
 			return itemCollection.Count;
@@ -107,27 +106,35 @@ namespace EntityFramework.Utilities
 
 			var itemCollection = items as IReadOnlyCollection<T> ?? items.ToArray();
 
-			using (var reader = new EFDataReader<T>(itemCollection, properties))
+			var reader = new EFDataReader<T>(itemCollection, properties);
+
+#if NETSTANDARD2_1_OR_GREATER
+			await using (reader.ConfigureAwait(false))
+#else
+			using (reader)
+#endif
 			{
-				using (var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction))
-				{
-					copy.BatchSize = batchSize ?? 4000;
-					copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
+				if (sqlConnection.State != ConnectionState.Open)
+					await sqlConnection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-					if (!string.IsNullOrWhiteSpace(schema))
-						copy.DestinationTableName = $"[{schema}].[{tableName}]";
-					else
-						copy.DestinationTableName = $"[{tableName}]";
+				using var copy = new SqlBulkCopy(sqlConnection, sqlBulkCopyOptions, sqlTransaction);
 
-					copy.NotifyAfter = 0;
+				copy.BatchSize = batchSize ?? 4000;
+				copy.BulkCopyTimeout = dbContext.Database.CommandTimeout ?? 30;
 
-					for (var i = 0; i < reader.FieldCount; i++)
-						copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
+				if (!string.IsNullOrWhiteSpace(schema))
+					copy.DestinationTableName = $"[{schema}].[{tableName}]";
+				else
+					copy.DestinationTableName = $"[{tableName}]";
 
-					await copy.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
+				copy.NotifyAfter = 0;
 
-					copy.Close();
-				}
+				for (var i = 0; i < reader.FieldCount; i++)
+					copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
+
+				await copy.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
+
+				copy.Close();
 			}
 
 			return itemCollection.Count;
@@ -212,7 +219,9 @@ namespace EntityFramework.Utilities
 				properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
 
 #if NETSTANDARD2_1_OR_GREATER
-			using (var transaction = await dbContext.Database.Connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false))
+			var transaction = await dbContext.Database.Connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+			await using (transaction.ConfigureAwait(false))
 #else
 			using (var transaction = dbContext.Database.Connection.BeginTransaction())
 #endif
