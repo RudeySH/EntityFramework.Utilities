@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace EntityFramework.Utilities
+﻿namespace EntityFramework.Utilities
 {
 	public static class Configuration
 	{
 		static Configuration()
 		{
-			Providers = new List<IQueryProvider> { new SqlQueryProvider() };
-
+			Providers = [new SqlQueryProvider()];
 			Log = m => { };
-
 			DisableDefaultFallback = true;
 		}
 

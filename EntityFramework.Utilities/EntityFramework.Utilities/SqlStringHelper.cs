@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace EntityFramework.Utilities
+﻿namespace EntityFramework.Utilities
 {
 	internal static class SqlStringHelper
 	{
@@ -21,7 +17,7 @@ namespace EntityFramework.Utilities
 						break;
 
 					case ')':
-						if (stack.Any())
+						if (stack.Count != 0)
 						{
 							stack.Pop();
 						}

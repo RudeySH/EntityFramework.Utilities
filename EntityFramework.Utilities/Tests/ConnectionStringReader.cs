@@ -1,25 +1,22 @@
 ﻿using ServiceStack.Text;
-using System.IO;
 
 namespace Tests
 {
 	public static class ConnectionStringReader
 	{
-		private static ConnectionStrings _connectionsStrings;
+		private static ConnectionStrings? ConnectionStringsField;
 
 		public static ConnectionStrings ConnectionStrings
 		{
 			get
 			{
-				if (_connectionsStrings == null)
+				if (ConnectionStringsField == null)
 				{
-					using (var stream = File.OpenRead("connectionStrings.json"))
-					{
-						_connectionsStrings = JsonSerializer.DeserializeFromStream<ConnectionStrings>(stream);
-					}
+					using var stream = File.OpenRead("connectionStrings.json");
+					ConnectionStringsField = JsonSerializer.DeserializeFromStream<ConnectionStrings>(stream);
 				}
 
-				return _connectionsStrings;
+				return ConnectionStringsField;
 			}
 		}
 	}

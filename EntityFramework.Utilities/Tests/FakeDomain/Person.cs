@@ -1,12 +1,13 @@
-﻿using System;
-
-namespace Tests.FakeDomain
+﻿namespace Tests.FakeDomain
 {
 	public class Person
 	{
 		public Guid Id { get; set; }
-		public string FirstName { get; set; }
-		public string LastName { get; set; }
+
+		public string FirstName { get; set; } = null!;
+
+		public string LastName { get; set; } = null!;
+
 		public DateTime BirthDate { get; set; }
 
 		public static Person Build(string firstname, string lastname, DateTime? birthdate = null)

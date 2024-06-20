@@ -1,30 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.Entity;
 using System.Data.Entity.Core.EntityClient;
 using System.Data.Entity.Core.Objects;
 using System.Data.SqlClient;
-using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
 	public class SqlQueryProvider : IQueryProvider
 	{
 		public bool CanDelete => true;
+
 		public bool CanUpdate => true;
+
 		public bool CanInsert => true;
+
 		public bool CanBulkUpdate => true;
 
-		private static readonly Regex FromRegex =
-			new Regex(@"FROM \[([^\]]+)\]\.\[([^\]]+)\] AS (\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		private static readonly Regex FromRegex = new(
+			@"FROM \[([^\]]+)\]\.\[([^\]]+)\] AS (\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-		private static readonly Regex UpdateRegex =
-			new Regex(@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		private static readonly Regex UpdateRegex = new(
+			@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 		public virtual string GetDeleteQuery(QueryInformation queryInfo)
 		{
@@ -35,7 +33,7 @@ namespace EntityFramework.Utilities
 
 		public virtual string GetUpdateQuery(QueryInformation predicateQueryInfo, QueryInformation modificationQueryInfo)
 		{
-			var msql = modificationQueryInfo.WhereSql.Replace("WHERE ", "");
+			var msql = modificationQueryInfo.WhereSql!.Replace("WHERE ", "");
 			var indexOfAnd = msql.IndexOf("AND", StringComparison.Ordinal);
 			var update = indexOfAnd == -1 ? msql : msql.Substring(0, indexOfAnd).Trim();
 
@@ -53,7 +51,7 @@ namespace EntityFramework.Utilities
 			}
 			else
 			{
-				updateSql = string.Join(" = ", update.Split(new[] { " = " }, StringSplitOptions.RemoveEmptyEntries).Reverse());
+				updateSql = string.Join(" = ", update.Split([" = "], StringSplitOptions.RemoveEmptyEntries).Reverse());
 			}
 
 			return $"UPDATE [{predicateQueryInfo.Schema}].[{predicateQueryInfo.Table}] SET {updateSql} {predicateQueryInfo.WhereSql}";
@@ -64,7 +62,9 @@ namespace EntityFramework.Utilities
 			IEnumerable<T> items, int? batchSize, SqlBulkCopyOptions sqlBulkCopyOptions)
 		{
 			var sqlConnection = (SqlConnection)this.GetUnderlyingConnection(dbContext.Database.Connection);
-			var sqlTransaction = (SqlTransaction)this.GetUnderlyingTransaction(dbContext.Database.CurrentTransaction);
+			var sqlTransaction = dbContext.Database.CurrentTransaction != null
+				? (SqlTransaction)this.GetUnderlyingTransaction(dbContext.Database.CurrentTransaction)
+				: null;
 
 			var itemCollection = items as IReadOnlyCollection<T> ?? items.ToArray();
 
@@ -102,7 +102,9 @@ namespace EntityFramework.Utilities
 			CancellationToken cancellationToken)
 		{
 			var sqlConnection = (SqlConnection)this.GetUnderlyingConnection(dbContext.Database.Connection);
-			var sqlTransaction = (SqlTransaction)this.GetUnderlyingTransaction(dbContext.Database.CurrentTransaction);
+			var sqlTransaction = dbContext.Database.CurrentTransaction != null
+				? (SqlTransaction)this.GetUnderlyingTransaction(dbContext.Database.CurrentTransaction)
+				: null;
 
 			var itemCollection = items as IReadOnlyCollection<T> ?? items.ToArray();
 
@@ -141,7 +143,7 @@ namespace EntityFramework.Utilities
 		}
 
 		public virtual int UpdateItems<T>(
-			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
 			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
 			bool deleteIfNotMatched)
 		{
@@ -156,7 +158,7 @@ namespace EntityFramework.Utilities
 			using (var transaction = dbContext.Database.BeginTransaction())
 			{
 				// Create temporary table.
-				var columns = properties.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char") ? " COLLATE DATABASE_DEFAULT" : null)}");
+				var columns = properties.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
 				var pkConstraint = string.Join(", ", properties.Where(p => p.IsPrimaryKey).Select(p => $"[{p.NameInDatabase}]"));
 				var createCommandText = $"CREATE TABLE {schemaPrefix}[{tempTableName}]({string.Join(", ", columns)}, PRIMARY KEY ({pkConstraint}))";
 
@@ -206,7 +208,7 @@ namespace EntityFramework.Utilities
 		}
 
 		public virtual async Task<int> UpdateItemsAsync<T>(
-			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+			DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
 			IEnumerable<T> items, UpdateSpecification<T> updateSpecification, int? batchSize, bool insertIfNotMatched,
 			bool deleteIfNotMatched, CancellationToken cancellationToken)
 		{
@@ -296,9 +298,9 @@ namespace EntityFramework.Utilities
 
 		public virtual DbTransaction GetUnderlyingTransaction(DbContextTransaction transaction)
 		{
-			return transaction?.UnderlyingTransaction is EntityTransaction entityTransaction
+			return transaction.UnderlyingTransaction is EntityTransaction entityTransaction
 				? this.GetUnderlyingTransaction(entityTransaction.StoreTransaction)
-				: transaction?.UnderlyingTransaction;
+				: transaction.UnderlyingTransaction;
 		}
 
 		public virtual DbTransaction GetUnderlyingTransaction(DbTransaction transaction)

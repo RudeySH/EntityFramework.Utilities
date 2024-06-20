@@ -1,9 +1,7 @@
 ﻿using EntityFramework.Utilities;
 using PerformanceTests.Models;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 /*
@@ -26,7 +24,7 @@ namespace PerformanceTests
 				Console.WriteLine("The 'runs' indicate how many times an action is performed on the entity count.");
 				try
 				{
-					runs = Convert.ToInt32(Console.ReadLine());
+					runs = Convert.ToInt32(Console.ReadLine(), CultureInfo.InvariantCulture);
 				}
 				catch
 				{
@@ -191,6 +189,7 @@ namespace PerformanceTests
 		private static void BatchIteration(int count)
 		{
 			var stopwatch = new Stopwatch();
+
 			using (var db = new Context())
 			{
 				var comments = GetEntities(count);
@@ -245,18 +244,16 @@ namespace PerformanceTests
 		/// </summary>
 		private static void CreateDatabase()
 		{
-			using (var db = new Context())
-			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-				db.Database.Create();
-			}
+			using var db = new Context();
+
+			if (db.Database.Exists())
+				db.Database.Delete();
+
+			db.Database.Create();
 		}
 
 		/// <summary>
-		///	Creates an <see cref="IEnumerable{Comment}"/> an fills it with test data.
+		/// Creates an <see cref="IEnumerable{Comment}"/> an fills it with test data.
 		/// </summary>
 		/// <param name="count">The amount of items wanted in the IEnumerable</param>
 		/// <returns>An IEnumerable of the <see cref="Comment"/> class.</returns>
@@ -270,8 +267,8 @@ namespace PerformanceTests
 				{
 					Line1 = "Street",
 					ZipCode = "12345",
-					Town = "Town"
-				}
+					Town = "Town",
+				},
 			});
 		}
 
@@ -280,13 +277,13 @@ namespace PerformanceTests
 		/// </summary>
 		private static void WarmUpConntection()
 		{
-			using (var db = new Context())
-			{
-				var comment = db.Comments.Add(new Comment { Text = "Test", Date = DateTime.Now, Address = new Address() });
-				db.SaveChanges();
-				db.Comments.Remove(comment);
-				db.SaveChanges();
-			}
+			using var db = new Context();
+
+			var comment = db.Comments.Add(new Comment { Text = "Test", Date = DateTime.Now, Address = new Address() });
+			db.SaveChanges();
+
+			db.Comments.Remove(comment);
+			db.SaveChanges();
 		}
 
 		/// <summary>
@@ -304,7 +301,7 @@ namespace PerformanceTests
 				return;
 			}
 
-			Console.WriteLine(string.Format("[{0}] {1} {2} iterations took {3} ms", testMethod, action, iterations, time));
+			Console.WriteLine($"[{testMethod}] {action} {iterations} iterations took {time} ms");
 		}
 	}
 }

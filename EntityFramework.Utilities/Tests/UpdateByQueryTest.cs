@@ -1,7 +1,5 @@
 ﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
@@ -95,11 +93,9 @@ namespace Tests
 		{
 			SetupBasePosts();
 
-			using (var db = Context.Sql())
-			{
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created == DateTime.Now.AddDays(2)).Update(b => b.Created, b => DateTime.Now);
-				Assert.AreEqual(1, count);
-			}
+			using var db = Context.Sql();
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created == DateTime.Now.AddDays(2)).Update(b => b.Created, b => DateTime.Now);
+			Assert.AreEqual(1, count);
 		}
 
 		[TestMethod]
@@ -196,7 +192,7 @@ namespace Tests
 		[TestMethod]
 		public void UpdateAll_NoProvider_UsesDefaultDelete()
 		{
-			string fallbackText = null;
+			string? fallbackText = null;
 			Configuration.DisableDefaultFallback = false;
 			Configuration.Log = str => fallbackText = str;
 
@@ -252,22 +248,20 @@ namespace Tests
 
 		private static void SetupBasePosts()
 		{
-			using (var db = Context.Sql())
+			using var db = Context.Sql();
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				var p = BlogPost.Create("T1");
-				p.Reads = 2;
-				db.BlogPosts.Add(p);
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
+
+			db.Database.Create();
+
+			var p = BlogPost.Create("T1");
+			p.Reads = 2;
+			db.BlogPosts.Add(p);
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+
+			db.SaveChanges();
 		}
 	}
 }

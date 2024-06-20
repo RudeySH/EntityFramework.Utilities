@@ -1,7 +1,5 @@
 ﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
@@ -195,7 +193,7 @@ namespace Tests
 		[TestMethod]
 		public void InsertAll_NoProvider_UsesDefaultInsert()
 		{
-			string fallbackText = null;
+			string? fallbackText = null;
 			Configuration.DisableDefaultFallback = false;
 			Configuration.Log = str => fallbackText = str;
 
@@ -249,8 +247,8 @@ namespace Tests
 
 				var comments = new List<Comment>
 				{
-					new Comment{Text = "C1", PostId = bp.Id },
-					new Comment{Text = "C2", PostId = bp.Id },
+					new Comment { Text = "C1", PostId = bp.Id },
+					new Comment { Text = "C2", PostId = bp.Id },
 				};
 
 				EFBatchOperation.For(db, db.Comments).InsertAll(comments);

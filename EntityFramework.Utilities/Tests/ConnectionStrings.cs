@@ -2,8 +2,8 @@
 {
 	public class ConnectionStrings
 	{
-		public string SqlServer { get; set; }
+		public string SqlServer { get; set; } = null!;
 
-		public string SqlCe { get; set; }
+		public string SqlCe { get; set; } = null!;
 	}
 }

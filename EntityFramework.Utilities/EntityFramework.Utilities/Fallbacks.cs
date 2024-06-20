@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.Entity;
-using System.Linq;
+﻿using System.Data.Entity;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
-	internal class Fallbacks
+	internal sealed class Fallbacks
 	{
 		internal static int DefaultInsertAll<TEntity>(
 			DbContext dbContext, IDbSet<TEntity> dbSet, IEnumerable<TEntity> items)

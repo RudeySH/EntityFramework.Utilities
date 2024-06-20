@@ -1,8 +1,5 @@
 ﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
@@ -84,10 +81,12 @@ namespace Tests
 				}
 				db.Database.Create();
 
-				var people = new List<Contact>();
-				people.Add(Contact.Build("FN1", "LN1", "Director"));
-				people.Add(Contact.Build("FN2", "LN2", "Associate"));
-				people.Add(Contact.Build("FN3", "LN3", "Vice President"));
+				var people = new List<Contact>
+				{
+					Contact.Build("FN1", "LN1", "Director"),
+					Contact.Build("FN2", "LN2", "Associate"),
+					Contact.Build("FN3", "LN3", "Vice President"),
+				};
 
 				EFBatchOperation.For(db, db.People).InsertAll(people);
 			}
@@ -166,8 +165,8 @@ namespace Tests
 				var guid = Guid.NewGuid();
 				var list = new List<MultiPkObject>
 				{
-					new MultiPkObject{ Pk1 = guid, Pk2 = 0 },
-					new MultiPkObject{ Pk1 = guid, Pk2 = 1 }
+					new MultiPkObject { Pk1 = guid, Pk2 = 0 },
+					new MultiPkObject { Pk1 = guid, Pk2 = 1 },
 				};
 
 				EFBatchOperation.For(db, db.MultiPkObjects).InsertAll(list);
@@ -218,23 +217,21 @@ namespace Tests
 
 		private static void Setup()
 		{
-			using (var db = Context.Sql())
+			using var db = Context.Sql();
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.ForceDelete();
-				}
-				db.Database.Create();
+				db.Database.ForceDelete();
+			}
+			db.Database.Create();
 
-				var list = new List<BlogPost>
+			var list = new List<BlogPost>
 				{
 					BlogPost.Create("T1"),
 					BlogPost.Create("T2"),
 					BlogPost.Create("T3")
 				};
 
-				EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
-			}
+			EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
 		}
 	}
 }

@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace Tests.FakeDomain
+﻿namespace Tests.FakeDomain
 {
 	public static class Queries
 	{

@@ -12,7 +12,7 @@ namespace Tests.Models
 	[ComplexType]
 	public class ComplexTypeObject
 	{
-		public string Name { get; set; }
+		public string? Name { get; set; }
 
 		public AnotherComplexTypeObject Another { get; set; } = new AnotherComplexTypeObject();
 	}
@@ -20,6 +20,6 @@ namespace Tests.Models
 	[ComplexType]
 	public class AnotherComplexTypeObject
 	{
-		public string Name { get; set; }
+		public string? Name { get; set; }
 	}
 }

@@ -10,8 +10,7 @@ namespace PerformanceTests
 		{
 		}
 
-		public DbSet<Comment> Comments { get; set; }
-		public DbSet<Publication> Publications { get; set; }
+		public DbSet<Comment> Comments { get; set; } = null!;
 
 		protected override void OnModelCreating(DbModelBuilder modelBuilder)
 		{

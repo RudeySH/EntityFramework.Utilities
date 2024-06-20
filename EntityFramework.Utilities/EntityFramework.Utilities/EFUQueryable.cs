@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities
 {
 	public class EFUQueryable<T> : IOrderedQueryable<T>, IIncludeContainer<T>
 	{
 		private readonly EFUQueryProvider<T> _provider;
-		private readonly List<IncludeExecuter> _includes = new List<IncludeExecuter>();
+		private readonly List<IncludeExecuter> _includes = [];
 
 		public IEnumerable<IncludeExecuter> Includes => _includes;
 

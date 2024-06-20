@@ -1,6 +1,5 @@
 ﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
@@ -63,22 +62,20 @@ namespace Tests
 
 		private static void SetupBasePosts()
 		{
-			using (var db = Context.Sql())
+			using var db = Context.Sql();
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				var p = BlogPost.Create("T1");
-				p.Reads = 2;
-				db.BlogPosts.Add(p);
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
+
+			db.Database.Create();
+
+			var p = BlogPost.Create("T1");
+			p.Reads = 2;
+			db.BlogPosts.Add(p);
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+
+			db.SaveChanges();
 		}
 	}
 }

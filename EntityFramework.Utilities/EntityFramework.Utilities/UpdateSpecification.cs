@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities
 {
@@ -10,13 +9,13 @@ namespace EntityFramework.Utilities
 		/// </summary>
 		/// <param name="properties"></param>
 		/// <returns></returns>
-		public UpdateSpecification<T> ColumnsToUpdate(params Expression<Func<T, object>>[] properties)
+		public UpdateSpecification<T> ColumnsToUpdate(params Expression<Func<T, object?>>[] properties)
 		{
 			Properties = properties;
 
 			return this;
 		}
 
-		public Expression<Func<T, object>>[] Properties { get; set; }
+		public Expression<Func<T, object?>>[] Properties { get; set; } = null!;
 	}
 }

@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
@@ -23,14 +18,15 @@ namespace EntityFramework.Utilities
 		}
 	}
 
-	internal class EFBatchOperation<TContext, TBaseEntity> : IEFBatchOperationBase<TBaseEntity>, IEFBatchOperationFiltered<TBaseEntity>
+	internal sealed class EFBatchOperation<TContext, TBaseEntity>
+		: IEFBatchOperationBase<TBaseEntity>, IEFBatchOperationFiltered<TBaseEntity>
 		where TContext : DbContext
 		where TBaseEntity : class
 	{
 		private readonly TContext dbContext;
 		private readonly IDbSet<TBaseEntity> dbSet;
 		private readonly ObjectContext objectContext;
-		private readonly Expression<Func<TBaseEntity, bool>> predicate;
+		private readonly Expression<Func<TBaseEntity, bool>>? predicate;
 
 		public EFBatchOperation(
 			TContext dbContext, IDbSet<TBaseEntity> dbSet)
@@ -78,8 +74,9 @@ namespace EntityFramework.Utilities
 			{
 				properties.Add(new ColumnMapping
 				{
+					NameOnObject = "",
 					NameInDatabase = tableMapping.TphConfiguration.ColumnName,
-					StaticValue = tableMapping.TphConfiguration.Mappings[typeof(TEntity)]
+					StaticValue = tableMapping.TphConfiguration.Mappings[typeof(TEntity)],
 				});
 			}
 
@@ -118,8 +115,9 @@ namespace EntityFramework.Utilities
 			{
 				properties.Add(new ColumnMapping
 				{
+					NameOnObject = "",
 					NameInDatabase = tableMapping.TphConfiguration.ColumnName,
-					StaticValue = tableMapping.TphConfiguration.Mappings[typeof(TEntity)]
+					StaticValue = tableMapping.TphConfiguration.Mappings[typeof(TEntity)],
 				});
 			}
 
@@ -144,10 +142,10 @@ namespace EntityFramework.Utilities
 			var properties = tableMapping.PropertyMappings
 				.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
 				.Where(p => p.IsComputed == false)
-				.Select(p => new ColumnMapping
+				.Select(p => new ColumnMappingToUpdate
 				{
-					NameInDatabase = p.ColumnName,
 					NameOnObject = p.PropertyName,
+					NameInDatabase = p.ColumnName,
 					DataType = p.DataType,
 					DataTypeFull = p.DataTypeFull,
 					IsPrimaryKey = p.IsPrimaryKey,
@@ -179,10 +177,10 @@ namespace EntityFramework.Utilities
 			var properties = tableMapping.PropertyMappings
 				.Where(p => p.ForEntityType == currentType || currentType.IsSubclassOf(p.ForEntityType))
 				.Where(p => p.IsComputed == false)
-				.Select(p => new ColumnMapping
+				.Select(p => new ColumnMappingToUpdate
 				{
-					NameInDatabase = p.ColumnName,
 					NameOnObject = p.PropertyName,
+					NameInDatabase = p.ColumnName,
 					DataType = p.DataType,
 					DataTypeFull = p.DataTypeFull,
 					IsPrimaryKey = p.IsPrimaryKey,
@@ -250,7 +248,7 @@ namespace EntityFramework.Utilities
 		}
 
 		private int Delete(
-			TransactionalBehavior? transactionalBehavior, string topExpression)
+			TransactionalBehavior? transactionalBehavior, string? topExpression)
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanDelete && p.CanHandle(this.dbContext));
 
@@ -259,7 +257,7 @@ namespace EntityFramework.Utilities
 				if (Configuration.DisableDefaultFallback)
 					throw new InvalidOperationException("No provider supporting the Delete operation was found.");
 
-				return Fallbacks.DefaultDelete(this.dbContext, this.dbSet, this.predicate);
+				return Fallbacks.DefaultDelete(this.dbContext, this.dbSet, this.predicate!);
 			}
 
 			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
@@ -277,8 +275,7 @@ namespace EntityFramework.Utilities
 		}
 
 		private Task<int> DeleteAsync(
-			TransactionalBehavior? transactionalBehavior, string topExpression,
-			CancellationToken cancellationToken = default)
+			TransactionalBehavior? transactionalBehavior, string? topExpression, CancellationToken cancellationToken)
 		{
 			var provider = Configuration.Providers.FirstOrDefault(p => p.CanDelete && p.CanHandle(this.dbContext));
 
@@ -287,7 +284,7 @@ namespace EntityFramework.Utilities
 				if (Configuration.DisableDefaultFallback)
 					throw new InvalidOperationException("No provider supporting the Delete operation was found.");
 
-				return Fallbacks.DefaultDeleteAsync(this.dbContext, this.dbSet, this.predicate, cancellationToken);
+				return Fallbacks.DefaultDeleteAsync(this.dbContext, this.dbSet, this.predicate!, cancellationToken);
 			}
 
 			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
@@ -315,7 +312,7 @@ namespace EntityFramework.Utilities
 				if (Configuration.DisableDefaultFallback)
 					throw new InvalidOperationException("No provider supporting the Update operation was found.");
 
-				return Fallbacks.DefaultUpdate(this.dbContext, this.dbSet, this.predicate, prop, modifier);
+				return Fallbacks.DefaultUpdate(this.dbContext, this.dbSet, this.predicate!, prop, modifier);
 			}
 
 			var set = this.objectContext.CreateObjectSet<TBaseEntity>();
@@ -353,7 +350,7 @@ namespace EntityFramework.Utilities
 					throw new InvalidOperationException("No provider supporting the Update operation was found.");
 
 				return Fallbacks.DefaultUpdateAsync(
-					this.dbContext, this.dbSet, this.predicate, prop, modifier, cancellationToken);
+					this.dbContext, this.dbSet, this.predicate!, prop, modifier, cancellationToken);
 			}
 
 			var set = this.objectContext.CreateObjectSet<TBaseEntity>();

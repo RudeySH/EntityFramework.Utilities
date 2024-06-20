@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EntityFramework.Utilities
 {
@@ -11,7 +6,7 @@ namespace EntityFramework.Utilities
 		where TBaseEntity : class
 	{
 		/// <summary>
-		/// Bulk insert all items if the Provider supports it. Otherwise it will use the default insert
+		/// Bulk insert all items if the provider supports it. Otherwise it will use the default insert
 		/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
@@ -24,7 +19,7 @@ namespace EntityFramework.Utilities
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
-		/// Bulk insert all items asynchronously if the Provider supports it. Otherwise it will use the default insert
+		/// Bulk insert all items asynchronously if the provider supports it. Otherwise it will use the default insert
 		/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 		/// </summary>
 		/// <param name="items">The items to insert.</param>
@@ -39,7 +34,7 @@ namespace EntityFramework.Utilities
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
-		/// Bulk update all items if the Provider supports it. Otherwise it will throw an exception.
+		/// Bulk update all items if the provider supports it. Otherwise it will throw an exception.
 		/// </summary>
 		/// <param name="items">The items to update.</param>
 		/// <param name="updateSpecification">Define which columns to update.</param>
@@ -59,7 +54,7 @@ namespace EntityFramework.Utilities
 			where TEntity : class, TBaseEntity;
 
 		/// <summary>
-		/// Bulk update all items asynchronously if the Provider supports it. Otherwise it will throw an exception.
+		/// Bulk update all items asynchronously if the provider supports it. Otherwise it will throw an exception.
 		/// </summary>
 		/// <param name="items">The items to update.</param>
 		/// <param name="updateSpecification">Define which columns to update.</param>

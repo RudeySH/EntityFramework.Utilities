@@ -1,40 +1,36 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections;
 using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities
 {
-	public class EFUQueryProvider<T> : ExpressionVisitor, System.Linq.IQueryProvider
+	public class EFUQueryProvider<T>(IQueryable source) : ExpressionVisitor, System.Linq.IQueryProvider
 	{
-		internal IQueryable Source;
-
-		public EFUQueryProvider(IQueryable source)
-		{
-			Source = source ?? throw new ArgumentNullException(nameof(source));
-		}
+		private readonly IQueryable Source = source ?? throw new ArgumentNullException(nameof(source));
 
 		public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
 
-			return new EFUQueryable<TElement>(Source, expression) as IQueryable<TElement>;
+			return new EFUQueryable<TElement>(Source, expression);
 		}
 
 		public IQueryable CreateQuery(Expression expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
+
 			var elementType = expression.Type.GetGenericArguments().First();
-			var result = (IQueryable)Activator.CreateInstance(typeof(EFUQueryable<>).MakeGenericType(elementType),
-				new object[] { Source, expression });
+			var result = (IQueryable)Activator.CreateInstance(typeof(EFUQueryable<>)
+				.MakeGenericType(elementType),[Source, expression]);
+
 			return result;
 		}
 
 		public TResult Execute<TResult>(Expression expression)
 		{
 			if (expression == null) throw new ArgumentNullException(nameof(expression));
+
 			var result = Execute(expression);
+
 			return (TResult)result;
 		}
 
@@ -76,45 +72,42 @@ namespace EntityFramework.Utilities
 		private static List<MethodCallExpression> GetModifiersForQuery(Expression expression)
 		{
 			var modifiers = new List<MethodCallExpression>();
-			var temp = expression;
 
-			while (temp is MethodCallExpression)
+			while (expression is MethodCallExpression methodCallExpression)
 			{
-				var func = temp as MethodCallExpression;
-				if (func.Method.Name != "IncludeEFU" && func.Method.Name != "Include")
+				if (methodCallExpression.Method.Name != "IncludeEFU" && methodCallExpression.Method.Name != "Include")
 				{
-					modifiers.Add(func);
+					modifiers.Add(methodCallExpression);
 				}
 
-				temp = func.Arguments[0];
+				expression = methodCallExpression.Arguments[0];
 			}
 
-			modifiers.Reverse(); //We parse in reverse order so undo that
+			modifiers.Reverse(); // We parse in reverse order so undo that
+
 			return modifiers;
 		}
 
-		private IIncludeContainer<T> GetIncludeContainer(Expression expression)
+		private static IIncludeContainer<T> GetIncludeContainer(Expression expression)
 		{
-			var temp = expression;
-
-			while (temp is MethodCallExpression)
+			while (expression is MethodCallExpression methodCallExpression)
 			{
-				temp = (temp as MethodCallExpression).Arguments[0];
+				expression = methodCallExpression.Arguments[0];
 			}
 
-			return (temp as ConstantExpression)?.Value as IIncludeContainer<T>;
+			return (IIncludeContainer<T>)((ConstantExpression)expression).Value;
 		}
 
 		#region Visitors
-		protected override Expression VisitConstant(ConstantExpression c)
+		protected override Expression VisitConstant(ConstantExpression node)
 		{
 			// fix up the Expression tree to work with EF again
-			if (c.Type == typeof(EFUQueryable<T>))
+			if (node.Type == typeof(EFUQueryable<T>))
 			{
 				return Source.Expression;
 			}
 
-			return base.VisitConstant(c);
+			return base.VisitConstant(node);
 		}
 		#endregion
 	}

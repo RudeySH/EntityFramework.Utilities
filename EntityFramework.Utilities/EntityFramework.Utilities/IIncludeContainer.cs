@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities
@@ -12,8 +10,10 @@ namespace EntityFramework.Utilities
 
 	public class IncludeExecuter
 	{
-		internal Type ElementType { get; set; }
-		internal Action<IEnumerable<MethodCallExpression>, IEnumerable> Loader { get; set; }
-		internal Action<object> SingleItemLoader { get; set; }
+		internal Type ElementType { get; set; } = null!;
+
+		internal Action<IEnumerable<MethodCallExpression>, IEnumerable> Loader { get; set; } = null!;
+
+		internal Action<object> SingleItemLoader { get; set; } = null!;
 	}
 }

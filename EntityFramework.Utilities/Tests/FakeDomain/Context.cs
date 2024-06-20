@@ -9,15 +9,23 @@ namespace Tests.FakeDomain
 		private Context(string connectionString)
 			: base(connectionString) { }
 
-		public DbSet<BlogPost> BlogPosts { get; set; }
-		public DbSet<Person> People { get; set; }
-		public DbSet<Contact> Contacts { get; set; }
-		public DbSet<PhoneNumber> PhoneNumbers { get; set; }
-		public DbSet<Email> Emails { get; set; }
-		public DbSet<Comment> Comments { get; set; }
-		public DbSet<NumericTestObject> NumericTestsObjects { get; set; }
-		public DbSet<MultiPkObject> MultiPkObjects { get; set; }
-		public DbSet<ObjectWithComplexType> ObjectsWithComplexType { get; set; }
+		public DbSet<BlogPost> BlogPosts { get; set; } = null!;
+
+		public DbSet<Person> People { get; set; } = null!;
+
+		public DbSet<Contact> Contacts { get; set; } = null!;
+
+		public DbSet<PhoneNumber> PhoneNumbers { get; set; } = null!;
+
+		public DbSet<Email> Emails { get; set; } = null!;
+
+		public DbSet<Comment> Comments { get; set; } = null!;
+
+		public DbSet<NumericTestObject> NumericTestsObjects { get; set; } = null!;
+
+		public DbSet<MultiPkObject> MultiPkObjects { get; set; } = null!;
+
+		public DbSet<ObjectWithComplexType> ObjectsWithComplexType { get; set; } = null!;
 
 		protected override void OnModelCreating(DbModelBuilder modelBuilder)
 		{
@@ -25,7 +33,7 @@ namespace Tests.FakeDomain
 			modelBuilder.ComplexType<AuthorInfo>();
 			modelBuilder.ComplexType<Address>();
 
-			//Table per Type Hierarchy setup
+			// Table per Type Hierarchy setup.
 			modelBuilder.Entity<Person>()
 				.Map<Person>(m => m.Requires("Type").HasValue("Person"))
 				.Map<Contact>(m => m.Requires("Type").HasValue("Contact"));
@@ -55,7 +63,6 @@ namespace Tests.FakeDomain
 		public static Context SqlCe()
 		{
 			Database.SetInitializer<Context>(null);
-			var def = Database.DefaultConnectionFactory;
 			Database.DefaultConnectionFactory = new SqlCeConnectionFactory("System.Data.SqlServerCe.4.0");
 
 			var ctx = new Context(ConnectionStringReader.ConnectionStrings.SqlCe);

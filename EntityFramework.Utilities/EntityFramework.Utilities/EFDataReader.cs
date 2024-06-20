@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Data;
 using System.Data.Common;
-using System.Linq;
 using System.Reflection;
 
 namespace EntityFramework.Utilities
@@ -10,58 +8,69 @@ namespace EntityFramework.Utilities
 	public class EFDataReader<T> : DbDataReader
 	{
 		public IEnumerable<T> Items { get; set; }
+
 		public IEnumerator<T> Enumerator { get; set; }
+
 		public IList<string> Properties { get; set; }
+
 		public List<Func<T, object>> Accessors { get; set; }
 
 		public EFDataReader(IEnumerable<T> items, IEnumerable<ColumnMapping> properties)
 		{
 			var columnMappings = properties as ColumnMapping[] ?? properties.ToArray();
+
 			Properties = columnMappings.Select(p => p.NameOnObject).ToList();
-			Accessors = columnMappings.Select(p =>
-			{
-				if (p.StaticValue != null)
+
+			Accessors = columnMappings
+				.Select(p =>
 				{
-					object Func(T x) => p.StaticValue;
-					return Func;
-				}
+					if (p.StaticValue != null)
+					{
+						object Func(T x) => p.StaticValue;
 
-				var parts = p.NameOnObject.Split('.');
+						return Func;
+					}
 
-				var info = typeof(T).GetProperty(parts[0]);
-				var method = typeof(EFDataReader<T>).GetMethod("MakeDelegate");
-				var generic = method.MakeGenericMethod(info.PropertyType);
+					var parts = p.NameOnObject.Split('.');
 
-				var getter = (Func<T, object>)generic.Invoke(this, new object[] { info.GetGetMethod(true) });
+					var info = typeof(T).GetProperty(parts[0]);
+					var method = typeof(EFDataReader<T>).GetMethod("MakeDelegate");
+					var generic = method.MakeGenericMethod(info.PropertyType);
 
-				var temp = info;
-				foreach (var part in parts.Skip(1))
-				{
-					var i = temp.PropertyType.GetProperty(part);
-					var g = i.GetGetMethod();
+					var getter = (Func<T, object>)generic.Invoke(this, [info.GetGetMethod(true)]);
 
-					var old = getter;
-					getter = x => g.Invoke(old(x), null);
+					var temp = info;
+					foreach (var part in parts.Skip(1))
+					{
+						var i = temp.PropertyType.GetProperty(part);
+						var g = i.GetGetMethod();
 
-					temp = i;
-				}
+						var old = getter;
+						getter = x => g.Invoke(old(x), null);
 
-				return getter;
-			}).ToList();
+						temp = i;
+					}
+
+					return getter;
+				})
+				.ToList();
+
 			Items = items;
+
 			Enumerator = items.GetEnumerator();
 		}
 
 		public static Func<T, object> MakeDelegate<TU>(MethodInfo @get)
 		{
 			var f = (Func<T, TU>)Delegate.CreateDelegate(typeof(Func<T, TU>), @get);
-			return t => f(t);
+
+			return t => f(t)!;
 		}
 
 		public override void Close()
 		{
-			Enumerator = null;
-			Items = null;
+			Enumerator = null!;
+			Items = null!;
 		}
 
 		public override int FieldCount => Properties.Count;
@@ -150,7 +159,7 @@ namespace EntityFramework.Utilities
 			throw new NotImplementedException();
 		}
 
-		public override System.Collections.IEnumerator GetEnumerator()
+		public override IEnumerator GetEnumerator()
 		{
 			throw new NotImplementedException();
 		}

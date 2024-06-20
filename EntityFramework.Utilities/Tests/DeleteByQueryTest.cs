@@ -1,7 +1,5 @@
 ﻿using EntityFramework.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Linq;
 using Tests.FakeDomain;
 using Tests.Models;
 
@@ -153,7 +151,7 @@ namespace Tests
 		[TestMethod]
 		public void DeleteAll_NoProvider_UsesDefaultDelete()
 		{
-			string fallbackText = null;
+			string? fallbackText = null;
 			Configuration.DisableDefaultFallback = false;
 			Configuration.Log = str => fallbackText = str;
 
