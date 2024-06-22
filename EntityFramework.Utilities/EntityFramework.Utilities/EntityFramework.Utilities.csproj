@@ -8,6 +8,14 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
     <AnalysisLevel>8.0</AnalysisLevel>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageId>RudeySH.EFUtilities</PackageId>
+    <Version>2.0.0-alpha.1</Version>
+    <Authors>RudeySH</Authors>
+    <Description>This a fork that adds various features and bugfixes to the original EFUtilities by Mikael Eliasson.</Description>
+    <PackageProjectUrl>https://github.com/RudeySH/EntityFramework.Utilities</PackageProjectUrl>
+    <PackageTags>Batch;EF;SQL;BulkCopy;SQLBulkCopy;Bulk;Copy;Entity;Framework;EntityFramework;Utilities;EFUtilities;EntityFramework.Utilities;Rudey;RudeySH</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

@@ -3,14 +3,11 @@
   <metadata>
     <id>$id$</id>
     <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
-    <licenseUrl>https://raw.githubusercontent.com/RudeySH/EntityFramework.Utilities/master/EntityFramework.Utilities/LICENSE.txt</licenseUrl>
-    <projectUrl>https://github.com/RudeySH/EntityFramework.Utilities</projectUrl>
-    <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>$description$</description>
-    <copyright>Copyright 2018</copyright>
+    <authors>$author$</authors>
+    <projectUrl>https://github.com/RudeySH/EntityFramework.Utilities</projectUrl>
     <tags>Batch EF SQL BulkCopy SQLBulkCopy Bulk Copy Entity Framework EntityFramework Utilities EFUtilities EntityFramework.Utilities Rudey RudeySH</tags>
+    <license type="expression">MIT</license>
+    <copyright>$copyright$</copyright>
   </metadata>
 </package>
