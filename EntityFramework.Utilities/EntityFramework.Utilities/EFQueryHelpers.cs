@@ -69,13 +69,12 @@ namespace EntityFramework.Utilities
 				{
 					var baseType = typeof(T).BaseType != typeof(object) ? typeof(T).BaseType : typeof(T);
 
-					dynamic? dynamicSet =
+					var set =
 						octx.GetType().GetMethod("CreateObjectSet", [])?.MakeGenericMethod(baseType).Invoke(octx, []);
 
-					if (dynamicSet?.OfType<T>() is not ObjectQuery<T> set)
+					if (set is not IQueryable<T> q)
 						return;
 
-					IQueryable<T> q = set;
 					foreach (var item in rootFilters)
 					{
 						var newSource = Expression.Constant(q);
