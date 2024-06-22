@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 
 namespace EntityFramework.Utilities
 {
-	public class SqlQueryProvider : IQueryProvider
+	public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	{
 		public bool CanDelete => true;
 		public bool CanUpdate => true;
@@ -16,6 +16,12 @@ namespace EntityFramework.Utilities
 
 		private static readonly Regex FromRegex = new Regex(@"FROM \[([^\]]+)\]\.\[([^\]]+)\] AS (\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 		private static readonly Regex UpdateRegex = new Regex(@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+		/// <inheritdoc/>
+		public bool QueryIsNoOp(QueryInformation queryInformation) =>
+			string.IsNullOrEmpty(queryInformation.Schema) &&
+			string.IsNullOrEmpty(queryInformation.Table) &&
+			queryInformation.WhereSql.Contains("WHERE 1 = 0");
 
 		public string GetDeleteQuery(QueryInformation queryInfo)
 		{
