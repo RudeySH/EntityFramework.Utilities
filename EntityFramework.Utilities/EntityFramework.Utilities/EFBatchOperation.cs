@@ -261,6 +261,11 @@ namespace EntityFramework.Utilities
 			var queryInformation = provider.GetQueryInformation(query);
 			queryInformation.TopExpression = topExpression;
 
+			// If Entity Framework has optimized the query down to a query that queries against nothing and returns
+			// nothing, then abort as there is no way to somehow translate it to a delete query.
+			if (provider is INoOpAnalyzer noOpAnalyzer && noOpAnalyzer.QueryIsNoOp(queryInformation))
+				return 0;
+
 			var delete = provider.GetDeleteQuery(queryInformation);
 			var parameters = query.Parameters.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name }).ToArray<object>();
 
@@ -320,6 +325,15 @@ namespace EntityFramework.Utilities
 
 			var mquery = (ObjectQuery<TBaseEntity>)this.objectContext.CreateObjectSet<TBaseEntity>().Where(updateExpression);
 			var mqueryInfo = provider.GetQueryInformation(mquery);
+
+			// If Entity Framework has optimized either query down to a query that queries against nothing and returns
+			// nothing, then abort as there is no way to somehow translate it to an update query.
+			if (provider is INoOpAnalyzer noOpAnalyzer && (
+					noOpAnalyzer.QueryIsNoOp(queryInformation) ||
+					noOpAnalyzer.QueryIsNoOp(mqueryInfo)))
+			{
+				return 0;
+			}
 
 			var update = provider.GetUpdateQuery(queryInformation, mqueryInfo);
 

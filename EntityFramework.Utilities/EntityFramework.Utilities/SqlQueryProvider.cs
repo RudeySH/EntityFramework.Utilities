@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace EntityFramework.Utilities
 {
-	public class SqlQueryProvider : IQueryProvider
+	public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	{
 		public bool CanDelete => true;
 
@@ -24,7 +24,15 @@ namespace EntityFramework.Utilities
 		private static readonly Regex UpdateRegex = new(
 			@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-		public virtual string GetDeleteQuery(QueryInformation queryInfo)
+		/// <inheritdoc/>
+		public bool QueryIsNoOp(QueryInformation queryInformation)
+		{
+			return string.IsNullOrEmpty(queryInformation.Schema) &&
+				string.IsNullOrEmpty(queryInformation.Table) &&
+				(queryInformation.WhereSql?.Contains("WHERE 1 = 0") ?? false);
+		}
+
+		public string GetDeleteQuery(QueryInformation queryInfo)
 		{
 			var topExpression = queryInfo.TopExpression != null ? queryInfo.TopExpression + ' ' : null;
 
