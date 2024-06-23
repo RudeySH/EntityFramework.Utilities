@@ -1,4 +1,4 @@
-﻿namespace EntityFramework.Utilities;
+﻿namespace EntityFramework.Utilities.Internal;
 
 internal static class SqlStringHelper
 {

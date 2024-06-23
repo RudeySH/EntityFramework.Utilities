@@ -1,7 +1,7 @@
 ﻿using System.Data.Entity;
 using System.Linq.Expressions;
 
-namespace EntityFramework.Utilities;
+namespace EntityFramework.Utilities.Internal;
 
 internal sealed class Fallbacks
 {

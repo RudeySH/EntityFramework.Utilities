@@ -3,9 +3,9 @@ using System.Data;
 using System.Data.Common;
 using System.Reflection;
 
-namespace EntityFramework.Utilities;
+namespace EntityFramework.Utilities.Internal;
 
-public class EFDataReader<T> : DbDataReader
+internal sealed class EFDataReader<T> : DbDataReader
 {
 	public IEnumerable<T> Items { get; set; }
 

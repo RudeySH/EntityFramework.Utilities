@@ -2,6 +2,9 @@
 
 namespace EntityFramework.Utilities;
 
+/// <summary>
+///     The options that can be specified for the InsertAll operation on SQL Server databases.
+/// </summary>
 public class SqlInsertAllOptions : InsertAllOptions
 {
 	/// <summary>

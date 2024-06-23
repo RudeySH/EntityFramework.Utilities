@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 using System.Linq.Expressions;
 
-namespace EntityFramework.Utilities;
+namespace EntityFramework.Utilities.Internal;
 
-public class EFUQueryProvider<T>(IQueryable source) : ExpressionVisitor, System.Linq.IQueryProvider
+internal sealed class EFUQueryProvider<T>(IQueryable source) : ExpressionVisitor, System.Linq.IQueryProvider
 {
 	private readonly IQueryable Source = source ?? throw new ArgumentNullException(nameof(source));
 
@@ -20,7 +20,7 @@ public class EFUQueryProvider<T>(IQueryable source) : ExpressionVisitor, System.
 
 		var elementType = expression.Type.GetGenericArguments().First();
 		var result = (IQueryable)Activator.CreateInstance(typeof(EFUQueryable<>)
-			.MakeGenericType(elementType),[Source, expression]);
+			.MakeGenericType(elementType), [Source, expression]);
 
 		return result;
 	}

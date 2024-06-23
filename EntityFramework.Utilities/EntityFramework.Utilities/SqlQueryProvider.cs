@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using EntityFramework.Utilities.Internal;
+using System.Data;
 using System.Data.Common;
 using System.Data.Entity;
 using System.Data.Entity.Core.EntityClient;

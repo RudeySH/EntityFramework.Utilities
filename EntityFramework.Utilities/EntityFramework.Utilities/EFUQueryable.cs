@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using EntityFramework.Utilities.Internal;
+using System.Linq.Expressions;
 
 namespace EntityFramework.Utilities;
 

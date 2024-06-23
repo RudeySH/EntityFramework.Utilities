@@ -2,97 +2,15 @@ using System.Data.Entity.Core.Mapping;
 using System.Data.Entity.Core.Metadata.Edm;
 using System.Data.Entity.Core.Objects;
 
-namespace EntityFramework.Utilities;
+namespace EntityFramework.Utilities.Internal;
 
 // Adapted from http://romiller.com/2013/09/24/ef-code-first-mapping-between-types-tables/
 // This whole file contains a hack needed because the mapping API is internal pre 6.1 at least.
 
 /// <summary>
-///     Represents the mapping of an entity type to one or mode tables in the database.
-///     A single entity can be mapped to more than one table when 'Entity Splitting' is used.
-///     Entity Splitting involves mapping different properties from the same type to different tables.
-///     See <see href="http://msdn.com/data/jj591617#2.7" /> for more details.
-/// </summary>
-public class TypeMapping
-{
-	/// <summary>
-	///     The type of the entity from the model.
-	/// </summary>
-	public Type EntityType { get; set; } = null!;
-
-	/// <summary>
-	///     The table(s) that the entity is mapped to.
-	/// </summary>
-	public List<TableMapping> TableMappings { get; set; } = null!;
-}
-
-/// <summary>
-///     Represents the mapping of an entity to a table in the database.
-/// </summary>
-public class TableMapping
-{
-	/// <summary>
-	///     The name of the table the entity is mapped to.
-	/// </summary>
-	public string TableName { get; set; } = null!;
-
-	/// <summary>
-	///     The schema of the table the entity is mapped to.
-	/// </summary>
-	public string Schema { get; set; } = null!;
-
-	/// <summary>
-	///     Details of the property-to-column mapping.
-	/// </summary>
-	public List<PropertyMapping> PropertyMappings { get; set; } = null!;
-
-	/// <summary>
-	///     Null if not TPH.
-	/// </summary>
-	public TphConfiguration? TphConfiguration { get; set; }
-}
-
-public class TphConfiguration
-{
-	public Dictionary<Type, string> Mappings { get; set; } = null!;
-
-	public string ColumnName { get; set; } = null!;
-}
-
-/// <summary>
-///     Represents the mapping of a property to a column in the database.
-/// </summary>
-public class PropertyMapping
-{
-	/// <summary>
-	///     The property chain leading to this property.
-	///     For scalar properties this is a single value but for Complex properties this is a dot (.) separated list.
-	/// </summary>
-	public string PropertyName { get; set; } = null!;
-
-	/// <summary>
-	///     The column that property is mapped to.
-	/// </summary>
-	public string ColumnName { get; set; } = null!;
-
-	/// <summary>
-	///     Used when we have TPH to exclude entities.
-	/// </summary>
-	public Type ForEntityType { get; set; } = null!;
-
-	public string DataType { get; set; } = null!;
-
-	public bool IsPrimaryKey { get; set; }
-
-	public string DataTypeFull { get; set; } = null!;
-
-	public bool IsComputed { get; set; }
-}
-
-/// <summary>
 ///     Represents that mapping between entity types and tables in an EF model.
 /// </summary>
-public class EfMapping
+internal sealed class EFMapping
 {
 	/// <summary>
 	///     Mapping information for each entity type in the model.
@@ -100,10 +18,10 @@ public class EfMapping
 	public Dictionary<Type, TypeMapping> TypeMappings { get; set; }
 
 	/// <summary>
-	///     Initializes an instance of the EfMapping class.
+	///     Initializes an instance of the EFMapping class.
 	/// </summary>
 	/// <param name="context">The context to get the mapping from.</param>
-	public EfMapping(ObjectContext context)
+	public EFMapping(ObjectContext context)
 	{
 		TypeMappings = [];
 
@@ -256,27 +174,84 @@ public class EfMapping
 	}
 }
 
-public static class EfMappingFactory
+/// <summary>
+///     Represents the mapping of an entity type to one or mode tables in the database.
+///     A single entity can be mapped to more than one table when 'Entity Splitting' is used.
+///     Entity Splitting involves mapping different properties from the same type to different tables.
+///     See <see href="http://msdn.com/data/jj591617#2.7" /> for more details.
+/// </summary>
+internal sealed class TypeMapping
 {
-	private static readonly Dictionary<Type, EfMapping> Cache = [];
+	/// <summary>
+	///     The type of the entity from the model.
+	/// </summary>
+	public Type EntityType { get; set; } = null!;
 
-	public static EfMapping GetMappingsForContext(ObjectContext context)
-	{
-		var type = context.GetType();
+	/// <summary>
+	///     The table(s) that the entity is mapped to.
+	/// </summary>
+	public List<TableMapping> TableMappings { get; set; } = null!;
+}
 
-		if (!Cache.TryGetValue(type, out var mapping))
-		{
-			// Lock only if we don't have the item in the cache.
-			lock (Cache)
-			{
-				if (!Cache.TryGetValue(type, out mapping))
-				{
-					mapping = new EfMapping(context);
-					Cache.Add(type, mapping);
-				}
-			}
-		}
+/// <summary>
+///     Represents the mapping of an entity to a table in the database.
+/// </summary>
+internal sealed class TableMapping
+{
+	/// <summary>
+	///     The name of the table the entity is mapped to.
+	/// </summary>
+	public string TableName { get; set; } = null!;
 
-		return mapping;
-	}
+	/// <summary>
+	///     The schema of the table the entity is mapped to.
+	/// </summary>
+	public string Schema { get; set; } = null!;
+
+	/// <summary>
+	///     Details of the property-to-column mapping.
+	/// </summary>
+	public List<PropertyMapping> PropertyMappings { get; set; } = null!;
+
+	/// <summary>
+	///     Null if not TPH.
+	/// </summary>
+	public TphConfiguration? TphConfiguration { get; set; }
+}
+
+/// <summary>
+///     Represents the mapping of a property to a column in the database.
+/// </summary>
+internal sealed class PropertyMapping
+{
+	/// <summary>
+	///     The property chain leading to this property.
+	///     For scalar properties this is a single value but for Complex properties this is a dot (.) separated list.
+	/// </summary>
+	public string PropertyName { get; set; } = null!;
+
+	/// <summary>
+	///     The column that property is mapped to.
+	/// </summary>
+	public string ColumnName { get; set; } = null!;
+
+	/// <summary>
+	///     Used when we have TPH to exclude entities.
+	/// </summary>
+	public Type ForEntityType { get; set; } = null!;
+
+	public string DataType { get; set; } = null!;
+
+	public bool IsPrimaryKey { get; set; }
+
+	public string DataTypeFull { get; set; } = null!;
+
+	public bool IsComputed { get; set; }
+}
+
+internal sealed class TphConfiguration
+{
+	public Dictionary<Type, string> Mappings { get; set; } = null!;
+
+	public string ColumnName { get; set; } = null!;
 }
