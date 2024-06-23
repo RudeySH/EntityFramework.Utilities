@@ -8,47 +8,46 @@ namespace EntityFramework.Utilities;
 // This whole file contains a hack needed because the mapping API is internal pre 6.1 at least.
 
 /// <summary>
-/// Represents the mapping of an entity type to one or mode tables in the database.
-///
-/// A single entity can be mapped to more than one table when 'Entity Splitting' is used.
-/// Entity Splitting involves mapping different properties from the same type to different tables.
-/// See <see href="http://msdn.com/data/jj591617#2.7" /> for more details.
+///     Represents the mapping of an entity type to one or mode tables in the database.
+///     A single entity can be mapped to more than one table when 'Entity Splitting' is used.
+///     Entity Splitting involves mapping different properties from the same type to different tables.
+///     See <see href="http://msdn.com/data/jj591617#2.7" /> for more details.
 /// </summary>
 public class TypeMapping
 {
 	/// <summary>
-	/// The type of the entity from the model.
+	///     The type of the entity from the model.
 	/// </summary>
 	public Type EntityType { get; set; } = null!;
 
 	/// <summary>
-	/// The table(s) that the entity is mapped to.
+	///     The table(s) that the entity is mapped to.
 	/// </summary>
 	public List<TableMapping> TableMappings { get; set; } = null!;
 }
 
 /// <summary>
-/// Represents the mapping of an entity to a table in the database.
+///     Represents the mapping of an entity to a table in the database.
 /// </summary>
 public class TableMapping
 {
 	/// <summary>
-	/// The name of the table the entity is mapped to.
+	///     The name of the table the entity is mapped to.
 	/// </summary>
 	public string TableName { get; set; } = null!;
 
 	/// <summary>
-	/// The schema of the table the entity is mapped to.
+	///     The schema of the table the entity is mapped to.
 	/// </summary>
 	public string Schema { get; set; } = null!;
 
 	/// <summary>
-	/// Details of the property-to-column mapping.
+	///     Details of the property-to-column mapping.
 	/// </summary>
 	public List<PropertyMapping> PropertyMappings { get; set; } = null!;
 
 	/// <summary>
-	/// Null if not TPH.
+	///     Null if not TPH.
 	/// </summary>
 	public TphConfiguration? TphConfiguration { get; set; }
 }
@@ -61,23 +60,23 @@ public class TphConfiguration
 }
 
 /// <summary>
-/// Represents the mapping of a property to a column in the database.
+///     Represents the mapping of a property to a column in the database.
 /// </summary>
 public class PropertyMapping
 {
 	/// <summary>
-	/// The property chain leading to this property.
-	/// For scalar properties this is a single value but for Complex properties this is a dot (.) separated list.
+	///     The property chain leading to this property.
+	///     For scalar properties this is a single value but for Complex properties this is a dot (.) separated list.
 	/// </summary>
 	public string PropertyName { get; set; } = null!;
 
 	/// <summary>
-	/// The column that property is mapped to.
+	///     The column that property is mapped to.
 	/// </summary>
 	public string ColumnName { get; set; } = null!;
 
 	/// <summary>
-	/// Used when we have TPH to exclude entities.
+	///     Used when we have TPH to exclude entities.
 	/// </summary>
 	public Type ForEntityType { get; set; } = null!;
 
@@ -91,17 +90,17 @@ public class PropertyMapping
 }
 
 /// <summary>
-/// Represents that mapping between entity types and tables in an EF model.
+///     Represents that mapping between entity types and tables in an EF model.
 /// </summary>
 public class EfMapping
 {
 	/// <summary>
-	/// Mapping information for each entity type in the model.
+	///     Mapping information for each entity type in the model.
 	/// </summary>
 	public Dictionary<Type, TypeMapping> TypeMappings { get; set; }
 
 	/// <summary>
-	/// Initializes an instance of the EfMapping class.
+	///     Initializes an instance of the EfMapping class.
 	/// </summary>
 	/// <param name="context">The context to get the mapping from.</param>
 	public EfMapping(ObjectContext context)

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Data.SqlServerCe;
-using System.IO;
+﻿using System.Data.SqlServerCe;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ServiceStack.Text;
 using Testcontainers.MsSql;

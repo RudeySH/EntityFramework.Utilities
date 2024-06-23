@@ -7,7 +7,7 @@ namespace EntityFramework.Utilities;
 public static class DatabaseExtensionMethods
 {
 	/// <summary>
-	/// Deletes the database even if there are open connections. Like from Management Studio for example.
+	///     Deletes the database even if there are open connections. Like from Management Studio for example.
 	/// </summary>
 	/// <param name="db"></param>
 	/// <param name="name">The name of the database to drop. Should normally not be needed as that is read from the connection string.</param>

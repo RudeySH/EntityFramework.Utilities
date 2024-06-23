@@ -8,6 +8,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisMode>Recommended</AnalysisMode>
     <AnalysisLevel>8.0</AnalysisLevel>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageId>RudeySH.EFUtilities</PackageId>
     <Version>2.0.0-alpha.1</Version>

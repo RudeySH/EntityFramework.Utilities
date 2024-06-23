@@ -24,7 +24,6 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	private static readonly Regex UpdateRegex = new(
 		@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-	/// <inheritdoc/>
 	public bool QueryIsNoOp(QueryInformation queryInformation)
 	{
 		return string.IsNullOrEmpty(queryInformation.Schema) &&

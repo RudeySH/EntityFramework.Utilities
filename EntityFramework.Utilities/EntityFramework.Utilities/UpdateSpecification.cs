@@ -5,7 +5,7 @@ namespace EntityFramework.Utilities;
 public class UpdateSpecification<T>
 {
 	/// <summary>
-	/// Set each column you want to update, Columns that belong to the primary key cannot be updated.
+	///     Set each column you want to update, Columns that belong to the primary key cannot be updated.
 	/// </summary>
 	/// <param name="properties"></param>
 	/// <returns></returns>

@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 namespace PerformanceTests;
 
 /// <summary>
-/// Run-able class used to test the performance of the EntityFramework.Utilities package
+///     Run-able class used to test the performance of the EntityFramework.Utilities package.
 /// </summary>
 internal static class Program
 {
@@ -56,9 +56,9 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Executes the test based on the given count.
+	///     Executes the test based on the given count.
 	/// </summary>
-	/// <param name="count">The amount of entities the test should use</param>
+	/// <param name="count">The amount of entities the test should use.</param>
 	private static void ExecuteTest(int count, int runs)
 	{
 		if (count > 0)
@@ -91,9 +91,9 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Does a testing iteration using default Entity Framework implementations.
-	/// This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
-	/// The contexts within the test have been optimized to not track changes where possible.
+	///     Does a testing iteration using default Entity Framework implementations.
+	///     This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
+	///     The contexts within the test have been optimized to not track changes where possible.
 	/// </summary>
 	/// <param name="count">The amount of objects that will be edited.</param>
 	[MethodImpl(MethodImplOptions.NoOptimization)]
@@ -181,8 +181,8 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Does a testing iteration using Entity Framework Utilities.
-	/// This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
+	///     Does a testing iteration using Entity Framework Utilities.
+	///     This methods has optimizations disabled to prevent the JIT from in-lining or removing results.
 	/// </summary>
 	/// <param name="count">The amount of objects that will be edited.</param>
 	[MethodImpl(MethodImplOptions.NoOptimization)]
@@ -239,8 +239,8 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Creates the databases based off the <see cref="Context"/> class.
-	/// When the database already exists it will be deleted.
+	///     Creates the databases based off the <see cref="Context"/> class.
+	///     When the database already exists it will be deleted.
 	/// </summary>
 	private static void CreateDatabase()
 	{
@@ -253,9 +253,9 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Creates an <see cref="IEnumerable{Comment}"/> an fills it with test data.
+	///     Creates an <see cref="IEnumerable{Comment}"/> an fills it with test data.
 	/// </summary>
-	/// <param name="count">The amount of items wanted in the IEnumerable</param>
+	/// <param name="count">The amount of items wanted in the IEnumerable.</param>
 	/// <returns>An IEnumerable of the <see cref="Comment"/> class.</returns>
 	private static IEnumerable<Comment> GetEntities(int count)
 	{
@@ -273,7 +273,7 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Prepares the database connection by requesting random data.
+	///     Prepares the database connection by requesting random data.
 	/// </summary>
 	private static void WarmUpConntection()
 	{
@@ -287,12 +287,12 @@ internal static class Program
 	}
 
 	/// <summary>
-	/// Logs a message about the benchmark that has been done
+	///     Logs a message about the benchmark that has been done.
 	/// </summary>
-	/// <param name="testMethod">Which framework are we using</param>
-	/// <param name="action">Which action has been tested</param>
-	/// <param name="iterations">The amount of entities that have been used</param>
-	/// <param name="time">The time the action took in milliseconds</param>
+	/// <param name="testMethod">Which framework are we using.</param>
+	/// <param name="action">Which action has been tested.</param>
+	/// <param name="iterations">The amount of entities that have been used.</param>
+	/// <param name="time">The time the action took in milliseconds.</param>
 	private static void LogMessage(string testMethod, string action, int iterations, long time)
 	{
 		// If the amount of iterations is 0, that means that it's a warmup run, no performance has to be documented.

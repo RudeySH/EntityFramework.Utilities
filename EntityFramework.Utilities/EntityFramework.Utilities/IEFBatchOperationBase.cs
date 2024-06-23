@@ -6,8 +6,8 @@ public interface IEFBatchOperationBase<TBaseEntity>
 	where TBaseEntity : class
 {
 	/// <summary>
-	/// Bulk insert all items if the provider supports it. Otherwise it will use the default insert
-	/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
+	///     Bulk insert all items if the provider supports it. Otherwise it will use the default insert
+	///     unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 	/// </summary>
 	/// <param name="items">The items to insert.</param>
 	/// <param name="options">The options. For SQL Server, use <see cref="SqlInsertAllOptions"/>.</param>
@@ -16,8 +16,8 @@ public interface IEFBatchOperationBase<TBaseEntity>
 		where TEntity : class, TBaseEntity;
 
 	/// <summary>
-	/// Bulk insert all items asynchronously if the provider supports it. Otherwise it will use the default insert
-	/// unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
+	///     Bulk insert all items asynchronously if the provider supports it. Otherwise it will use the default insert
+	///     unless Configuration.DisableDefaultFallback is set to true in which case it would throw an exception.
 	/// </summary>
 	/// <param name="items">The items to insert.</param>
 	/// <param name="options">The options. For SQL Server, use <see cref="SqlInsertAllOptions"/>.</param>
@@ -27,7 +27,7 @@ public interface IEFBatchOperationBase<TBaseEntity>
 		where TEntity : class, TBaseEntity;
 
 	/// <summary>
-	/// Bulk update all items if the provider supports it. Otherwise it will throw an exception.
+	///     Bulk update all items if the provider supports it. Otherwise it will throw an exception.
 	/// </summary>
 	/// <param name="items">The items to update.</param>
 	/// <param name="updateSpecification">Define which columns to update.</param>
@@ -38,7 +38,7 @@ public interface IEFBatchOperationBase<TBaseEntity>
 		where TEntity : class, TBaseEntity;
 
 	/// <summary>
-	/// Bulk update all items asynchronously if the provider supports it. Otherwise it will throw an exception.
+	///     Bulk update all items asynchronously if the provider supports it. Otherwise it will throw an exception.
 	/// </summary>
 	/// <param name="items">The items to update.</param>
 	/// <param name="updateSpecification">Define which columns to update.</param>

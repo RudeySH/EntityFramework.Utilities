@@ -1,6 +1,5 @@
 ﻿using System.Data.Entity;
 using System.Data.Entity.Core.Metadata.Edm;
-using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -10,13 +9,14 @@ namespace EntityFramework.Utilities;
 public static class EFQueryHelpers
 {
 	/// <summary>
-	/// Loads a child collection in a more efficient way than the standard Include. Will run all involved queries as NoTracking
+	///     Loads a child collection in a more efficient way than the standard Include.
+	///     Will run all involved queries as NoTracking.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="TChild"></typeparam>
 	/// <param name="query"></param>
 	/// <param name="context"></param>
-	/// <param name="collectionSelector">The navigation property. It can be filtered and sorted with the methods Where,OrderBy(Descending),ThenBy(Descending) </param>
+	/// <param name="collectionSelector">The navigation property. It can be filtered and sorted with the methods Where,OrderBy(Descending),ThenBy(Descending.</param>
 	/// <returns></returns>
 	public static EFUQueryable<T> IncludeEFU<T, TChild>(this IQueryable<T> query, DbContext context, Expression<Func<T, IEnumerable<TChild>>> collectionSelector)
 		where T : class
@@ -24,7 +24,7 @@ public static class EFQueryHelpers
 	{
 		var octx = (context as IObjectContextAdapter).ObjectContext;
 		var cSpaceTables = octx.MetadataWorkspace.GetItems<EntityType>(DataSpace.CSpace);
-		var cSpaceType = cSpaceTables.Single(t => t.Name == typeof(T).Name); // Use single to avoid any problems with multiple tables using the same type
+		var cSpaceType = cSpaceTables.Single(t => t.Name == typeof(T).Name); // Use single to avoid any problems with multiple tables using the same type.
 		var keys = cSpaceType.KeyProperties;
 		if (keys.Count > 1)
 		{
