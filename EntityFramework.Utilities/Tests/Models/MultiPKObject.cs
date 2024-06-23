@@ -1,11 +1,10 @@
-﻿namespace Tests.Models
+﻿namespace Tests.Models;
+
+public class MultiPkObject
 {
-	public class MultiPkObject
-	{
-		public Guid Pk1 { get; set; }
+	public Guid Pk1 { get; set; }
 
-		public int Pk2 { get; set; }
+	public int Pk2 { get; set; }
 
-		public string? Text { get; set; }
-	}
+	public string? Text { get; set; }
 }

@@ -1,13 +1,12 @@
-﻿namespace Tests.FakeDomain
+﻿namespace Tests.FakeDomain;
+
+public class PhoneNumber
 {
-	public class PhoneNumber
-	{
-		public Guid Id { get; set; }
+	public Guid Id { get; set; }
 
-		public string Number { get; set; } = null!;
+	public string Number { get; set; } = null!;
 
-		public Guid ContactId { get; set; }
+	public Guid ContactId { get; set; }
 
-		public Contact Contact { get; set; } = null!;
-	}
+	public Contact Contact { get; set; } = null!;
 }

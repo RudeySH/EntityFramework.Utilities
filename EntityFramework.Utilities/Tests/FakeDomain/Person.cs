@@ -1,24 +1,23 @@
-﻿namespace Tests.FakeDomain
+﻿namespace Tests.FakeDomain;
+
+public class Person
 {
-	public class Person
+	public Guid Id { get; set; }
+
+	public string FirstName { get; set; } = null!;
+
+	public string LastName { get; set; } = null!;
+
+	public DateTime BirthDate { get; set; }
+
+	public static Person Build(string firstname, string lastname, DateTime? birthdate = null)
 	{
-		public Guid Id { get; set; }
-
-		public string FirstName { get; set; } = null!;
-
-		public string LastName { get; set; } = null!;
-
-		public DateTime BirthDate { get; set; }
-
-		public static Person Build(string firstname, string lastname, DateTime? birthdate = null)
+		return new Person
 		{
-			return new Person
-			{
-				Id = Guid.NewGuid(),
-				FirstName = firstname,
-				LastName = lastname,
-				BirthDate = birthdate ?? DateTime.Today
-			};
-		}
+			Id = Guid.NewGuid(),
+			FirstName = firstname,
+			LastName = lastname,
+			BirthDate = birthdate ?? DateTime.Today
+		};
 	}
 }

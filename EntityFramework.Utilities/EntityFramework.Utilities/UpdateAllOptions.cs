@@ -1,6 +1,5 @@
-﻿namespace EntityFramework.Utilities
+﻿namespace EntityFramework.Utilities;
+
+public abstract class UpdateAllOptions
 {
-	public abstract class UpdateAllOptions
-	{
-	}
 }

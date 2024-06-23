@@ -1,9 +1,8 @@
-﻿namespace Tests
-{
-	public class ConnectionStrings
-	{
-		public string SqlServer { get; set; } = null!;
+﻿namespace Tests;
 
-		public string SqlCe { get; set; } = null!;
-	}
+public class ConnectionStrings
+{
+	public string SqlServer { get; set; } = null!;
+
+	public string SqlCe { get; set; } = null!;
 }

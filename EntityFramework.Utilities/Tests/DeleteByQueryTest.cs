@@ -3,257 +3,256 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Tests.FakeDomain;
 using Tests.Models;
 
-namespace Tests
+namespace Tests;
+
+[TestClass]
+public class DeleteByQueryTest
 {
-	[TestClass]
-	public class DeleteByQueryTest
+	[TestMethod]
+	public void DeleteAll_PropertyEquals_DeletesAllMatchesAndNothingElse()
 	{
-		[TestMethod]
-		public void DeleteAll_PropertyEquals_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-				db.BlogPosts.Add(BlogPost.Create("T3"));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
 
-			using (var db = Context.Sql())
-			{
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete();
-				Assert.AreEqual(2, count);
-			}
+			db.Database.Create();
 
-			using (var db = Context.Sql())
-			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(2, posts.Count);
-				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
-			}
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+			db.BlogPosts.Add(BlogPost.Create("T3"));
+
+			db.SaveChanges();
 		}
 
-		[TestMethod]
-		public void DeleteAll_DateIsSmallerThan_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
-			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
-				db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(-1)));
-				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(1)));
-
-				db.SaveChanges();
-			}
-
-			using (var db = Context.Sql())
-			{
-				var limit = DateTime.Today;
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < limit).Delete();
-				Assert.AreEqual(2, count);
-			}
-
-			using (var db = Context.Sql())
-			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(1, posts.Count);
-				Assert.AreEqual("T3", posts.First().Title);
-			}
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete();
+			Assert.AreEqual(2, count);
 		}
 
-		[TestMethod]
-		public void DeleteAll_DateIsInRange_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(2, posts.Count);
+			Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+		}
+	}
+
+	[TestMethod]
+	public void DeleteAll_DateIsSmallerThan_DeletesAllMatchesAndNothingElse()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
-				db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(0)));
-				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
 
-			using (var db = Context.Sql())
-			{
-				var lower = DateTime.Today.AddDays(-1);
-				var upper = DateTime.Today.AddDays(1);
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower).Delete();
-				Assert.AreEqual(1, count);
-			}
+			db.Database.Create();
 
-			using (var db = Context.Sql())
-			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(2, posts.Count);
-				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
-			}
+			db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+			db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(-1)));
+			db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(1)));
+
+			db.SaveChanges();
 		}
 
-		[TestMethod]
-		public void DeleteAll_DateIsInRangeAndTitleEquals_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
-			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
-				db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
-				db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
-				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
-
-				db.SaveChanges();
-			}
-
-			using (var db = Context.Sql())
-			{
-				var lower = DateTime.Today.AddDays(-1);
-				var upper = DateTime.Today.AddDays(1);
-
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").Delete();
-				Assert.AreEqual(1, count);
-			}
-
-			using (var db = Context.Sql())
-			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(3, posts.Count);
-				Assert.AreEqual(0, posts.Count(p => p.Title == "T2.0"));
-			}
+			var limit = DateTime.Today;
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < limit).Delete();
+			Assert.AreEqual(2, count);
 		}
 
-		[TestMethod]
-		public void DeleteAll_NoProvider_UsesDefaultDelete()
+		using (var db = Context.Sql())
 		{
-			string? fallbackText = null;
-			Configuration.DisableDefaultFallback = false;
-			Configuration.Log = str => fallbackText = str;
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(1, posts.Count);
+			Assert.AreEqual("T3", posts.First().Title);
+		}
+	}
 
-			using (var db = Context.SqlCe())
+	[TestMethod]
+	public void DeleteAll_DateIsInRange_DeletesAllMatchesAndNothingElse()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
-				db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
-				db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
-				db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
 
-			using (var db = Context.SqlCe())
-			{
-				var lower = DateTime.Today.AddDays(-1);
-				var upper = DateTime.Today.AddDays(1);
+			db.Database.Create();
 
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").Delete();
-				Assert.AreEqual(1, count);
-			}
+			db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+			db.BlogPosts.Add(BlogPost.Create("T2", DateTime.Today.AddDays(0)));
+			db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
 
-			using (var db = Context.SqlCe())
-			{
-				Assert.AreEqual(3, db.BlogPosts.Count());
-			}
-
-			Assert.IsNotNull(fallbackText);
+			db.SaveChanges();
 		}
 
-		[TestMethod]
-		public void DeleteAll_Top_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
-			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-
-				db.SaveChanges();
-			}
-
-			using (var db = Context.Sql())
-			{
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T1").DeleteTop(2);
-				Assert.AreEqual(2, count);
-			}
-
-			using (var db = Context.Sql())
-			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(3, posts.Count);
-				Assert.AreEqual(1, posts.Count(p => p.Title == "T2"));
-			}
+			var lower = DateTime.Today.AddDays(-1);
+			var upper = DateTime.Today.AddDays(1);
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower).Delete();
+			Assert.AreEqual(1, count);
 		}
 
-		[TestMethod]
-		public void DeleteAll_PropertyEquals_WithExplicitConnection_DeletesAllMatchesAndNothingElse()
+		using (var db = Context.Sql())
 		{
-			using (var db = Context.Sql())
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(2, posts.Count);
+			Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+		}
+	}
+
+	[TestMethod]
+	public void DeleteAll_DateIsInRangeAndTitleEquals_DeletesAllMatchesAndNothingElse()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
 			{
-				if (db.Database.Exists())
-				{
-					db.Database.Delete();
-				}
-				db.Database.Create();
-
-				db.BlogPosts.Add(BlogPost.Create("T1"));
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-				db.BlogPosts.Add(BlogPost.Create("T2"));
-				db.BlogPosts.Add(BlogPost.Create("T3"));
-
-				db.SaveChanges();
+				db.Database.Delete();
 			}
 
-			using (var db = Context.Sql())
+			db.Database.Create();
+
+			db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+			db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
+			db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
+			db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
+
+			db.SaveChanges();
+		}
+
+		using (var db = Context.Sql())
+		{
+			var lower = DateTime.Today.AddDays(-1);
+			var upper = DateTime.Today.AddDays(1);
+
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").Delete();
+			Assert.AreEqual(1, count);
+		}
+
+		using (var db = Context.Sql())
+		{
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(3, posts.Count);
+			Assert.AreEqual(0, posts.Count(p => p.Title == "T2.0"));
+		}
+	}
+
+	[TestMethod]
+	public void DeleteAll_NoProvider_UsesDefaultDelete()
+	{
+		string? fallbackText = null;
+		Configuration.DisableDefaultFallback = false;
+		Configuration.Log = str => fallbackText = str;
+
+		using (var db = Context.SqlCe())
+		{
+			if (db.Database.Exists())
 			{
-				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete();
-				Assert.AreEqual(2, count);
+				db.Database.Delete();
 			}
 
-			using (var db = Context.Sql())
+			db.Database.Create();
+
+			db.BlogPosts.Add(BlogPost.Create("T1", DateTime.Today.AddDays(-2)));
+			db.BlogPosts.Add(BlogPost.Create("T2.0", DateTime.Today.AddDays(0)));
+			db.BlogPosts.Add(BlogPost.Create("T2.1", DateTime.Today.AddDays(0)));
+			db.BlogPosts.Add(BlogPost.Create("T3", DateTime.Today.AddDays(2)));
+
+			db.SaveChanges();
+		}
+
+		using (var db = Context.SqlCe())
+		{
+			var lower = DateTime.Today.AddDays(-1);
+			var upper = DateTime.Today.AddDays(1);
+
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Created < upper && b.Created > lower && b.Title == "T2.0").Delete();
+			Assert.AreEqual(1, count);
+		}
+
+		using (var db = Context.SqlCe())
+		{
+			Assert.AreEqual(3, db.BlogPosts.Count());
+		}
+
+		Assert.IsNotNull(fallbackText);
+	}
+
+	[TestMethod]
+	public void DeleteAll_Top_DeletesAllMatchesAndNothingElse()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
 			{
-				var posts = db.BlogPosts.ToList();
-				Assert.AreEqual(2, posts.Count);
-				Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
+				db.Database.Delete();
 			}
+			db.Database.Create();
+
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+
+			db.SaveChanges();
+		}
+
+		using (var db = Context.Sql())
+		{
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T1").DeleteTop(2);
+			Assert.AreEqual(2, count);
+		}
+
+		using (var db = Context.Sql())
+		{
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(3, posts.Count);
+			Assert.AreEqual(1, posts.Count(p => p.Title == "T2"));
+		}
+	}
+
+	[TestMethod]
+	public void DeleteAll_PropertyEquals_WithExplicitConnection_DeletesAllMatchesAndNothingElse()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
+			{
+				db.Database.Delete();
+			}
+			db.Database.Create();
+
+			db.BlogPosts.Add(BlogPost.Create("T1"));
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+			db.BlogPosts.Add(BlogPost.Create("T2"));
+			db.BlogPosts.Add(BlogPost.Create("T3"));
+
+			db.SaveChanges();
+		}
+
+		using (var db = Context.Sql())
+		{
+			var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Delete();
+			Assert.AreEqual(2, count);
+		}
+
+		using (var db = Context.Sql())
+		{
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(2, posts.Count);
+			Assert.AreEqual(0, posts.Count(p => p.Title == "T2"));
 		}
 	}
 }

@@ -1,19 +1,18 @@
 ﻿using System.Collections;
 using System.Linq.Expressions;
 
-namespace EntityFramework.Utilities
+namespace EntityFramework.Utilities;
+
+public interface IIncludeContainer<T>
 {
-	public interface IIncludeContainer<T>
-	{
-		IEnumerable<IncludeExecuter> Includes { get; }
-	}
+	IEnumerable<IncludeExecuter> Includes { get; }
+}
 
-	public class IncludeExecuter
-	{
-		internal Type ElementType { get; set; } = null!;
+public class IncludeExecuter
+{
+	internal Type ElementType { get; set; } = null!;
 
-		internal Action<IEnumerable<MethodCallExpression>, IEnumerable> Loader { get; set; } = null!;
+	internal Action<IEnumerable<MethodCallExpression>, IEnumerable> Loader { get; set; } = null!;
 
-		internal Action<object> SingleItemLoader { get; set; } = null!;
-	}
+	internal Action<object> SingleItemLoader { get; set; } = null!;
 }

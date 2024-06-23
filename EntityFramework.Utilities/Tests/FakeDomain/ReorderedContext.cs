@@ -2,31 +2,30 @@
 using System.Data.Entity.Infrastructure;
 using Tests.Models;
 
-namespace Tests.FakeDomain
+namespace Tests.FakeDomain;
+
+public class ReorderedContext : DbContext
 {
-	public class ReorderedContext : DbContext
+	public ReorderedContext()
+		: base(ConnectionStringsFixture.ConnectionStrings.SqlServer)
 	{
-		public ReorderedContext()
-			: base(ConnectionStringsFixture.ConnectionStrings.SqlServer)
-		{
-			Database.DefaultConnectionFactory = new SqlConnectionFactory("System.Data.SqlServer");
-			Database.SetInitializer(new CreateDatabaseIfNotExists<ReorderedContext>());
+		Database.DefaultConnectionFactory = new SqlConnectionFactory("System.Data.SqlServer");
+		Database.SetInitializer(new CreateDatabaseIfNotExists<ReorderedContext>());
 
-			Configuration.ValidateOnSaveEnabled = false;
-			Configuration.LazyLoadingEnabled = false;
-			Configuration.ProxyCreationEnabled = false;
-			Configuration.AutoDetectChangesEnabled = false;
-		}
+		Configuration.ValidateOnSaveEnabled = false;
+		Configuration.LazyLoadingEnabled = false;
+		Configuration.ProxyCreationEnabled = false;
+		Configuration.AutoDetectChangesEnabled = false;
+	}
 
-		public IDbSet<ReorderedBlogPost> BlogPosts { get; set; } = null!;
+	public IDbSet<ReorderedBlogPost> BlogPosts { get; set; } = null!;
 
-		protected override void OnModelCreating(DbModelBuilder modelBuilder)
-		{
-			base.OnModelCreating(modelBuilder);
+	protected override void OnModelCreating(DbModelBuilder modelBuilder)
+	{
+		base.OnModelCreating(modelBuilder);
 
-			modelBuilder.Entity<ReorderedBlogPost>().ToTable("BlogPosts");
-			modelBuilder.ComplexType<AuthorInfo>();
-			modelBuilder.ComplexType<Address>();
-		}
+		modelBuilder.Entity<ReorderedBlogPost>().ToTable("BlogPosts");
+		modelBuilder.ComplexType<AuthorInfo>();
+		modelBuilder.ComplexType<Address>();
 	}
 }
