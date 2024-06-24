@@ -121,7 +121,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		var reader = new EFDataReader<T>(itemCollection, properties);
 
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
 		await using (reader.ConfigureAwait(false))
 #else
 		using (reader)
@@ -211,7 +211,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var commands = PrepareUpdateAllCommands(
 			schema, tableName, tempTableName, properties, columnsToUpdate, sqlOptions);
 
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
 		var transaction = await dbContext.Database.Connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
 
 		await using (transaction.ConfigureAwait(false))
@@ -244,7 +244,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 			await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteTempTable, cancellationToken)
 				.ConfigureAwait(false);
 
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
 			await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 #else
 			transaction.Commit();
