@@ -9,7 +9,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageId>RudeySH.EFUtilities</PackageId>
-    <Version>2.0.0-alpha.1</Version>
+    <Version>2.0.0-alpha.2</Version>
     <Authors>RudeySH</Authors>
     <Description>This a fork that adds various features and bugfixes to the original EFUtilities by Mikael Eliasson.</Description>
     <PackageProjectUrl>https://github.com/RudeySH/EntityFramework.Utilities</PackageProjectUrl>

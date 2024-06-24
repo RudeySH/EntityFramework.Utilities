@@ -1,4 +1,5 @@
-﻿using System.Data.SqlClient;
+﻿using System.Data;
+using System.Data.SqlClient;
 
 namespace EntityFramework.Utilities;
 
@@ -45,6 +46,18 @@ public class SqlUpdateAllOptions : UpdateAllOptions
 	/// </summary>
 	/// <value>Default: []</value>
 	public string[] TableHints { get; set; } = [];
+
+	/// <summary>
+	///     The isolation level used for the transaction, if <see cref="WrapInTransaction"/> is set to
+	///     <see langword="true"/>.
+	/// </summary>
+	/// <value>Default: <see cref="IsolationLevel.Unspecified"/></value>
+	public IsolationLevel TransactionIsolationLevel { get; set; } = IsolationLevel.Unspecified;
+
+	/// <summary>
+	///     If set to <see langword="true"/>, the UpdateAll operation creates and commits a transaction.
+	/// </summary>
+	public bool WrapInTransaction { get; set; }
 
 	#endregion Public Properties
 }

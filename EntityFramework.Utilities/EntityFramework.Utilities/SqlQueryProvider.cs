@@ -169,30 +169,46 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var commands = PrepareUpdateAllCommands(
 			schema, tableName, tempTableName, properties, columnsToUpdate, sqlOptions);
 
-		using var transaction = dbContext.Database.BeginTransaction();
+		if (dbContext.Database.Connection.State != ConnectionState.Open)
+			dbContext.Database.Connection.Open();
 
-		// Create the temporary table.
-		dbContext.Database.ExecuteSqlCommand(commands.CreateTempTable);
+		var transaction = sqlOptions.WrapInTransaction
+			? dbContext.Database.Connection.BeginTransaction(sqlOptions.TransactionIsolationLevel)
+			: null;
 
-		// Insert items into the temporary table with SqlBulkCopy.
-		var sqlInsertAllOptions = new SqlInsertAllOptions
+		try
 		{
-			BatchSize = sqlOptions.BatchSize,
-			SqlBulkCopyOptions = sqlOptions.SqlBulkCopyOptions,
-		};
+			// Create the temporary table.
+			dbContext.Database.ExecuteSqlCommand(commands.CreateTempTable);
 
-		this.InsertItems(
-			dbContext, schema, tempTableName, properties, items, sqlInsertAllOptions);
+			// Insert items into the temporary table with SqlBulkCopy.
+			var sqlInsertAllOptions = new SqlInsertAllOptions
+			{
+				BatchSize = sqlOptions.BatchSize,
+				SqlBulkCopyOptions = sqlOptions.SqlBulkCopyOptions,
+			};
 
-		// Update (or merge) records in the original table.
-		var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.UpdateOrMerge);
+			this.InsertItems(
+				dbContext, schema, tempTableName, properties, items, sqlInsertAllOptions);
 
-		// Delete the temporary table.
-		dbContext.Database.ExecuteSqlCommand(commands.DeleteTempTable);
+			// Update (or merge) records in the original table.
+			var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.UpdateOrMerge);
 
-		transaction.Commit();
+			// Delete the temporary table.
+			dbContext.Database.ExecuteSqlCommand(commands.DeleteTempTable);
 
-		return rowsAffected;
+			transaction?.Commit();
+
+			return rowsAffected;
+		}
+		finally
+		{
+			if (transaction != null)
+			{
+				transaction.Dispose();
+				transaction = null;
+			}
+		}
 	}
 
 	public virtual async Task<int> UpdateItemsAsync<T>(
@@ -211,15 +227,18 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var commands = PrepareUpdateAllCommands(
 			schema, tableName, tempTableName, properties, columnsToUpdate, sqlOptions);
 
-#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
-		var transaction = await dbContext.Database.Connection.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+		if (dbContext.Database.Connection.State != ConnectionState.Open)
+			await dbContext.Database.Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
 
-		await using (transaction.ConfigureAwait(false))
+		var transaction = sqlOptions.WrapInTransaction
+#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
+			? await dbContext.Database.Connection.BeginTransactionAsync(sqlOptions.TransactionIsolationLevel, cancellationToken).ConfigureAwait(false)
 #else
-#pragma warning disable IDE0063 // Use simple 'using' statement
-		using (var transaction = dbContext.Database.Connection.BeginTransaction())
-#pragma warning restore IDE0063 // Use simple 'using' statement
+			? dbContext.Database.Connection.BeginTransaction(sqlOptions.TransactionIsolationLevel)
 #endif
+			: null;
+
+		try
 		{
 			// Create the temporary table.
 			await dbContext.Database.ExecuteSqlCommandAsync(commands.CreateTempTable, cancellationToken)
@@ -245,12 +264,25 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 				.ConfigureAwait(false);
 
 #if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
-			await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+			if (transaction != null)
+				await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
 #else
-			transaction.Commit();
+			transaction?.Commit();
 #endif
 
 			return rowsAffected;
+		}
+		finally
+		{
+			if (transaction != null)
+			{
+#if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
+				await transaction.DisposeAsync().ConfigureAwait(false);
+#else
+				transaction.Dispose();
+#endif
+				transaction = null;
+			}
 		}
 	}
 
