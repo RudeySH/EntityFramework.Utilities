@@ -353,9 +353,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 	public virtual DbTransaction GetUnderlyingTransaction(DbContextTransaction transaction)
 	{
-		return transaction.UnderlyingTransaction is EntityTransaction entityTransaction
-			? this.GetUnderlyingTransaction(entityTransaction.StoreTransaction)
-			: transaction.UnderlyingTransaction;
+		return this.GetUnderlyingTransaction(transaction.UnderlyingTransaction);
 	}
 
 	public virtual DbTransaction GetUnderlyingTransaction(DbTransaction transaction)
