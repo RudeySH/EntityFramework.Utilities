@@ -5,6 +5,7 @@ using System.Data.Entity;
 using System.Data.Entity.Core.EntityClient;
 using System.Data.Entity.Core.Objects;
 using System.Data.SqlClient;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace EntityFramework.Utilities;
@@ -66,7 +67,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	}
 
 	public virtual int InsertItems<T>(
-		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> columns,
 		IEnumerable<T> items, InsertAllOptions? options)
 	{
 		var sqlOptions = ((SqlInsertAllOptions?)options) ?? new SqlInsertAllOptions();
@@ -78,7 +79,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		var itemCollection = items as IReadOnlyCollection<T> ?? items.ToArray();
 
-		using (var reader = new EFDataReader<T>(itemCollection, properties))
+		using (var reader = new EFDataReader<T>(itemCollection, columns))
 		{
 			if (sqlConnection.State != ConnectionState.Open)
 				sqlConnection.Open();
@@ -96,7 +97,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 			copy.NotifyAfter = 0;
 
 			for (var i = 0; i < reader.FieldCount; i++)
-				copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
+				copy.ColumnMappings.Add(i, columns[i].NameInDatabase);
 
 			copy.WriteToServer(reader);
 
@@ -107,7 +108,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	}
 
 	public virtual async Task<int> InsertItemsAsync<T>(
-		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> properties,
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMapping> columns,
 		IEnumerable<T> items, InsertAllOptions? options, CancellationToken cancellationToken)
 	{
 		var sqlOptions = ((SqlInsertAllOptions?)options) ?? new SqlInsertAllOptions();
@@ -119,7 +120,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		var itemCollection = items as IReadOnlyCollection<T> ?? items.ToArray();
 
-		var reader = new EFDataReader<T>(itemCollection, properties);
+		var reader = new EFDataReader<T>(itemCollection, columns);
 
 #if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
 		await using (reader.ConfigureAwait(false))
@@ -144,7 +145,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 			copy.NotifyAfter = 0;
 
 			for (var i = 0; i < reader.FieldCount; i++)
-				copy.ColumnMappings.Add(i, properties[i].NameInDatabase);
+				copy.ColumnMappings.Add(i, columns[i].NameInDatabase);
 
 			await copy.WriteToServerAsync(reader, cancellationToken).ConfigureAwait(false);
 
@@ -155,19 +156,19 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	}
 
 	public virtual int UpdateItems<T>(
-		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
 		IEnumerable<T> items, UpdateSpecification<T> updateSpecification, UpdateAllOptions? options)
 	{
 		var sqlOptions = ((SqlUpdateAllOptions?)options) ?? new SqlUpdateAllOptions();
 
 		var tempTableName = $"#{Guid.NewGuid():N}";
-		var columnsToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
+		var propertiesToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
 
 		if (!sqlOptions.InsertIfNotMatched)
-			properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
+			columns = columns.Where(p => p.IsPrimaryKey || propertiesToUpdate.Contains(p.NameOnObject)).ToArray();
 
 		var commands = PrepareUpdateAllCommands(
-			schema, tableName, tempTableName, properties, columnsToUpdate, sqlOptions);
+			schema, tableName, tempTableName, columns, propertiesToUpdate, sqlOptions);
 
 		if (dbContext.Database.Connection.State != ConnectionState.Open)
 			dbContext.Database.Connection.Open();
@@ -188,10 +189,9 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 				SqlBulkCopyOptions = sqlOptions.SqlBulkCopyOptions,
 			};
 
-			this.InsertItems(
-				dbContext, schema, tempTableName, properties, items, sqlInsertAllOptions);
+			this.InsertItems(dbContext, schema, tempTableName, columns, items, sqlInsertAllOptions);
 
-			// Update (or merge) records in the original table.
+			// Update (or merge) rows in the original table.
 			var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.UpdateOrMerge);
 
 			// Delete the temporary table.
@@ -212,20 +212,20 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	}
 
 	public virtual async Task<int> UpdateItemsAsync<T>(
-		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> properties,
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
 		IEnumerable<T> items, UpdateSpecification<T> updateSpecification, UpdateAllOptions? options,
 		CancellationToken cancellationToken)
 	{
 		var sqlOptions = ((SqlUpdateAllOptions?)options) ?? new SqlUpdateAllOptions();
 
 		var tempTableName = $"#{Guid.NewGuid():N}";
-		var columnsToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
+		var propertiesToUpdate = new HashSet<string>(updateSpecification.Properties.Select(p => p.GetPropertyName()));
 
 		if (!sqlOptions.InsertIfNotMatched)
-			properties = properties.Where(p => p.IsPrimaryKey || columnsToUpdate.Contains(p.NameOnObject)).ToArray();
+			columns = columns.Where(p => p.IsPrimaryKey || propertiesToUpdate.Contains(p.NameOnObject)).ToArray();
 
 		var commands = PrepareUpdateAllCommands(
-			schema, tableName, tempTableName, properties, columnsToUpdate, sqlOptions);
+			schema, tableName, tempTableName, columns, propertiesToUpdate, sqlOptions);
 
 		if (dbContext.Database.Connection.State != ConnectionState.Open)
 			await dbContext.Database.Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
@@ -252,10 +252,10 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 			};
 
 			await this.InsertItemsAsync(
-				dbContext, schema, tempTableName, properties, items, sqlInsertAllOptions, cancellationToken)
+				dbContext, schema, tempTableName, columns, items, sqlInsertAllOptions, cancellationToken)
 				.ConfigureAwait(false);
 
-			// Update (or merge) records in the original table.
+			// Update (or merge) rows in the original table.
 			var rowsAffected = await dbContext.Database.ExecuteSqlCommandAsync(commands.UpdateOrMerge, cancellationToken)
 				.ConfigureAwait(false);
 
@@ -287,45 +287,55 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	}
 
 	private static UpdateAllCommands PrepareUpdateAllCommands(
-		string schema, string tableName, string tempTableName, IReadOnlyList<ColumnMappingToUpdate> properties,
-		HashSet<string> columnsToUpdate, SqlUpdateAllOptions sqlOptions)
+		string schema, string tableName, string tempTableName, IReadOnlyList<ColumnMappingToUpdate> columns,
+		HashSet<string> propertiesToUpdate, SqlUpdateAllOptions sqlOptions)
 	{
 		var schemaPrefix = !string.IsNullOrWhiteSpace(schema) ? $"[{schema}]." : null;
 
 		// Prepare command for creating the temporary table.
-		var columns = properties.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
-		var pkConstraint = string.Join(", ", properties.Where(p => p.IsPrimaryKey).Select(p => $"[{p.NameInDatabase}]"));
-		var createTempTableSql = $"CREATE TABLE {schemaPrefix}[{tempTableName}]({string.Join(", ", columns)}, PRIMARY KEY ({pkConstraint}))";
+		var columnDefinitions = columns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
+		var pkConstraint = string.Join(", ", columns.Where(c => c.IsPrimaryKey).Select(c => $"[{c.NameInDatabase}]"));
+		var createTempTableSql = $"CREATE TABLE {schemaPrefix}[{tempTableName}] ({string.Join(", ", columnDefinitions)}, PRIMARY KEY ({pkConstraint}))";
 
-		// Prepare command for updating (or merging) records in the original table.
-		var joinCondition = string.Join(" AND ", properties.Where(p => p.IsPrimaryKey).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
-		var setters = string.Join(",", properties.Where(p => columnsToUpdate.Contains(p.NameOnObject)).Select(p => $"o.[{p.NameInDatabase}] = t.[{p.NameInDatabase}]"));
-		string updateOrMergeSql;
+		// Prepare command for updating (or merging) rows in the original table.
+		var joinCondition = string.Join(" AND ", columns.Where(c => c.IsPrimaryKey).Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
+		var columnsToSet = columns.Where(c => propertiesToUpdate.Contains(c.NameOnObject)).ToArray();
+		var setters = string.Join(", ", columnsToSet.Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
+		var updateOrMergeSql = new StringBuilder();
 
 		if (sqlOptions.InsertIfNotMatched || sqlOptions.DeleteIfNotMatched)
 		{
-			updateOrMergeSql = $"MERGE {schemaPrefix}[{tableName}]";
+			updateOrMergeSql.Append($"MERGE {schemaPrefix}[{tableName}]");
 
 			if (sqlOptions.TableHints?.Length > 0)
-				updateOrMergeSql += $" WITH ({string.Join(",", sqlOptions.TableHints)})";
+				updateOrMergeSql.Append($" WITH ({string.Join(", ", sqlOptions.TableHints)})");
 
-			updateOrMergeSql += $" AS o USING {schemaPrefix}[{tempTableName}] AS t ON {joinCondition}";
-			updateOrMergeSql += $" WHEN MATCHED THEN UPDATE SET {setters}";
+			updateOrMergeSql.Append($" AS t USING {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}");
 
 			if (sqlOptions.InsertIfNotMatched)
 			{
-				var insertColumns = string.Join(",", properties.Select(p => $"[{p.NameInDatabase}]"));
-				var insertValues = string.Join(",", properties.Select(p => $"t.[{p.NameInDatabase}]"));
+				var insertColumns = string.Join(", ", columns.Select(p => $"[{p.NameInDatabase}]"));
+				var insertValues = string.Join(", ", columns.Select(p => $"s.[{p.NameInDatabase}]"));
 
-				updateOrMergeSql += $" WHEN NOT MATCHED BY o THEN INSERT ({insertColumns}) VALUES ({insertValues})";
+				updateOrMergeSql.Append($" WHEN NOT MATCHED BY t THEN INSERT ({insertColumns}) VALUES ({insertValues})");
 			}
 
 			if (sqlOptions.DeleteIfNotMatched)
-				updateOrMergeSql += $" WHEN NOT MATCHED BY t THEN DELETE";
+				updateOrMergeSql.Append(" WHEN NOT MATCHED BY s THEN DELETE");
+
+			updateOrMergeSql.Append($" WHEN MATCHED THEN UPDATE SET {setters}");
 		}
 		else
 		{
-			updateOrMergeSql = $"UPDATE o SET {setters} FROM {schemaPrefix}[{tableName}] AS o INNER JOIN {schemaPrefix}[{tempTableName}] AS t ON {joinCondition}";
+			updateOrMergeSql.Append($"UPDATE t SET {setters} FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}");
+		}
+
+		if (sqlOptions.SkipUnchangedRows)
+		{
+			var targetColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(t.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"t.[{c.NameInDatabase}]"));
+			var sourceColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(s.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"s.[{c.NameInDatabase}]"));
+
+			updateOrMergeSql.Append($" WHERE NOT EXISTS (SELECT {targetColumns} INTERSECT SELECT {sourceColumns})");
 		}
 
 		// Prepare command for deleting the temporary table.
@@ -334,7 +344,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		return new UpdateAllCommands
 		{
 			CreateTempTable = createTempTableSql,
-			UpdateOrMerge = updateOrMergeSql,
+			UpdateOrMerge = updateOrMergeSql.ToString(),
 			DeleteTempTable = deleteTempTableSql,
 		};
 	}

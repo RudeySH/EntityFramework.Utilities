@@ -15,13 +15,13 @@ internal sealed class EFDataReader<T> : DbDataReader
 
 	public List<Func<T, object>> Accessors { get; set; }
 
-	public EFDataReader(IEnumerable<T> items, IEnumerable<ColumnMapping> properties)
+	public EFDataReader(IEnumerable<T> items, IEnumerable<ColumnMapping> columns)
 	{
-		var columnMappings = properties as ColumnMapping[] ?? properties.ToArray();
+		var enumeratedColumns = columns as IReadOnlyCollection<ColumnMapping> ?? columns.ToArray();
 
-		Properties = columnMappings.Select(p => p.NameOnObject).ToList();
+		Properties = enumeratedColumns.Select(p => p.NameOnObject).ToList();
 
-		Accessors = columnMappings
+		Accessors = enumeratedColumns
 			.Select(p =>
 			{
 				if (p.StaticValue != null)

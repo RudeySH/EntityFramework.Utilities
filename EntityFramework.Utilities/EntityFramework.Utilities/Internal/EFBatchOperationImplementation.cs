@@ -53,7 +53,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		var tableMapping = typeMapping.TableMappings.First();
 		var currentType = typeof(TEntity);
 
-		var properties = tableMapping.PropertyMappings
+		var columns = tableMapping.PropertyMappings
 			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
 			.Where(p => p.IsComputed == false)
 			.Select(p => new ColumnMapping { NameInDatabase = p.ColumnName, NameOnObject = p.PropertyName })
@@ -61,7 +61,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 
 		if (tableMapping.TphConfiguration != null)
 		{
-			properties.Add(new ColumnMapping
+			columns.Add(new ColumnMapping
 			{
 				NameOnObject = "",
 				NameInDatabase = tableMapping.TphConfiguration.ColumnName,
@@ -70,7 +70,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		}
 
 		return provider.InsertItems(
-			dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, options);
+			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, options);
 	}
 
 	public Task<int> InsertAllAsync<TEntity>(
@@ -92,7 +92,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		var tableMapping = typeMapping.TableMappings.First();
 		var currentType = typeof(TEntity);
 
-		var properties = tableMapping.PropertyMappings
+		var columns = tableMapping.PropertyMappings
 			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
 			.Where(p => p.IsComputed == false)
 			.Select(p => new ColumnMapping { NameInDatabase = p.ColumnName, NameOnObject = p.PropertyName })
@@ -100,7 +100,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 
 		if (tableMapping.TphConfiguration != null)
 		{
-			properties.Add(new ColumnMapping
+			columns.Add(new ColumnMapping
 			{
 				NameOnObject = "",
 				NameInDatabase = tableMapping.TphConfiguration.ColumnName,
@@ -109,8 +109,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		}
 
 		return provider.InsertItemsAsync(
-			dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, options,
-			cancellationToken);
+			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, options, cancellationToken);
 	}
 
 	public int UpdateAll<TEntity>(
@@ -126,7 +125,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		var tableMapping = typeMapping.TableMappings.First();
 		var currentType = typeof(TEntity);
 
-		var properties = tableMapping.PropertyMappings
+		var columns = tableMapping.PropertyMappings
 			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
 			.Where(p => p.IsComputed == false)
 			.Select(p => new ColumnMappingToUpdate
@@ -143,7 +142,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		updateSpecification(spec);
 
 		return provider.UpdateItems(
-			dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, options);
+			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, spec, options);
 	}
 
 	public Task<int> UpdateAllAsync<TEntity>(
@@ -159,7 +158,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		var tableMapping = typeMapping.TableMappings.First();
 		var currentType = typeof(TEntity);
 
-		var properties = tableMapping.PropertyMappings
+		var columns = tableMapping.PropertyMappings
 			.Where(p => p.ForEntityType == currentType || currentType.IsSubclassOf(p.ForEntityType))
 			.Where(p => p.IsComputed == false)
 			.Select(p => new ColumnMappingToUpdate
@@ -176,8 +175,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		updateSpecification(spec);
 
 		return provider.UpdateItemsAsync(
-			dbContext, tableMapping.Schema, tableMapping.TableName, properties, items, spec, options,
-			cancellationToken);
+			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, spec, options, cancellationToken);
 	}
 
 	public IEFBatchOperationFiltered<TBaseEntity> Where(

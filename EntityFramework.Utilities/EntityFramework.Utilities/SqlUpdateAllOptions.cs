@@ -18,7 +18,7 @@ public class SqlUpdateAllOptions : UpdateAllOptions
 	public int BatchSize { get; set; } = 4000;
 
 	/// <summary>
-	///     If set to <see langword="true"/>, the UpdateAll operation deletes all records that were not updated.
+	///     If set to <see langword="true"/>, the UpdateAll operation deletes all rows that were not updated.
 	///     If either <see cref="DeleteIfNotMatched"/> or <see cref="InsertIfNotMatched"/> is set to true,
 	///     the UpdateAll operation executes a MERGE statement instead of an UPDATE statement.
 	/// </summary>
@@ -26,13 +26,28 @@ public class SqlUpdateAllOptions : UpdateAllOptions
 	public bool DeleteIfNotMatched { get; set; }
 
 	/// <summary>
+	///     The number of decimal places that should be checked during comparison.
+	///     This option is only used if <see cref="SkipUnchangedRows"/> is set to <see langword="true"/>.
+	///     Float values are truncated before they are compared to each other, to determine if a row is unchanged.
+	/// </summary>
+	/// <value>Default: 2</value>
+	public int FloatDecimals { get; set; } = 2;
+
+	/// <summary>
 	///     If set to <see langword="true"/>, the UpdateAll operation upserts the items; items that can not be matched
-	///     with an existing record are inserted, and items that can be matched are updated.
+	///     with an existing row are inserted, and items that can be matched are updated.
 	///     If either <see cref="DeleteIfNotMatched"/> or <see cref="InsertIfNotMatched"/> is set to true,
 	///     the UpdateAll operation executes a MERGE statement instead of an UPDATE statement.
 	/// </summary>
 	/// <value>Default: <see langword="false" /></value>
 	public bool InsertIfNotMatched { get; set; }
+
+	/// <summary>
+	///     If set to <see langword="true"/>, the UpdateAll operation does not update rows if the values in the
+	///     columns-to-update are unchanged.
+	/// </summary>
+	/// <value>Default: <see langword="false" /></value>
+	public bool SkipUnchangedRows { get; set; }
 
 	/// <summary>
 	///     The options for <see cref="SqlBulkCopy"/>.
