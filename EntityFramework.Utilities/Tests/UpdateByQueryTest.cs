@@ -103,6 +103,24 @@ namespace Tests
 		}
 
 		[TestMethod]
+		public void UpdateAll_SetNull()
+		{
+			SetupBasePosts();
+
+			using (var db = Context.Sql())
+			{
+				var count = EFBatchOperation.For(db, db.BlogPosts).Where(b => b.Title == "T2").Update(b => b.Title, b => null);
+				Assert.AreEqual(1, count);
+			}
+
+			using (var db = Context.Sql())
+			{
+				Assert.AreEqual(1, db.BlogPosts.Count(p => p.Title == null));
+				Assert.AreEqual(0, db.BlogPosts.Count(p => p.Title == "T2"));
+			}
+		}
+
+		[TestMethod]
 		[Ignore]
 		public void UpdateAll_ConcatStringValue()
 		{
