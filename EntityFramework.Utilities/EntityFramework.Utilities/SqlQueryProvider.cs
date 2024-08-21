@@ -15,7 +15,7 @@ namespace EntityFramework.Utilities
 		public bool CanBulkUpdate => true;
 
 		private static readonly Regex FromRegex = new Regex(@"FROM \[([^\]]+)\]\.\[([^\]]+)\] AS (\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-		private static readonly Regex UpdateRegex = new Regex(@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		private static readonly Regex UpdateRegex = new Regex(@"(\[[^\]]+\])[^=]+(?:=|IS)(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 		/// <inheritdoc/>
 		public bool QueryIsNoOp(QueryInformation queryInformation) =>
