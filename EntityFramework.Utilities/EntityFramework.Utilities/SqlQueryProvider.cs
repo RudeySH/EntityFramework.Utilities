@@ -21,7 +21,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 	public bool CanBulkUpdate => true;
 
 	private static readonly Regex FromRegex = new(
-		@"FROM \[([^\]]+)\]\.\[([^\]]+)\] AS (\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+		@"FROM\s*\[([^\]]+)\]\.\[([^\]]+)\]\s*AS\s*(\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
 	private static readonly Regex UpdateRegex = new(
 		@"(\[[^\]]+\])[^=]+=(.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled);

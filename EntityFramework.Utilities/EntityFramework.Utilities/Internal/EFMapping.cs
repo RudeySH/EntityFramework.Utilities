@@ -139,17 +139,45 @@ internal sealed class EFMapping
 
 	private static string GetFullTypeName(ScalarPropertyMapping scalar)
 	{
-		if (scalar.Column.TypeName == "nvarchar" ||
-			scalar.Column.TypeName == "varchar" ||
-			scalar.Column.TypeName == "nchar" ||
-			scalar.Column.TypeName == "char")
+		switch (scalar.Column.TypeName)
 		{
-			return $"{scalar.Column.TypeName}({scalar.Column.MaxLength})";
-		}
+			case "binary":
+			case "char":
+			case "nchar":
+				if (scalar.Column.MaxLength != null)
+					return $"{scalar.Column.TypeName}({scalar.Column.MaxLength})";
+				break;
 
-		if (scalar.Column.TypeName == "decimal" || scalar.Column.TypeName == "numeric")
-		{
-			return $"{scalar.Column.TypeName}({scalar.Column.Precision},{scalar.Column.Scale})";
+			case "varbinary":
+			case "varchar":
+			case "nvarchar":
+				if (scalar.Column.IsMaxLength)
+					return $"{scalar.Column.TypeName}(max)";
+				else if (scalar.Column.MaxLength != null)
+					return $"{scalar.Column.TypeName}({scalar.Column.MaxLength})";
+				break;
+
+			case "decimal":
+			case "numeric":
+				if (scalar.Column.Precision != null)
+				{
+					if (scalar.Column.Scale != null)
+						return $"{scalar.Column.TypeName}({scalar.Column.Precision},{scalar.Column.Scale})";
+
+					return $"{scalar.Column.TypeName}({scalar.Column.Precision})";
+				}
+				break;
+
+			case "datetime2":
+			case "datetimeoffset":
+				if (scalar.Column.Precision != null)
+					return $"{scalar.Column.TypeName}({scalar.Column.Precision})";
+				break;
+
+			case "time":
+				if (scalar.Column.Scale != null)
+					return $"{scalar.Column.TypeName}({scalar.Column.Scale})";
+				break;
 		}
 
 		return scalar.Column.TypeName;

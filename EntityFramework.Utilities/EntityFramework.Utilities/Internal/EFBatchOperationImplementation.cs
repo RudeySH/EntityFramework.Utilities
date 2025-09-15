@@ -126,7 +126,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		var currentType = typeof(TEntity);
 
 		var columns = tableMapping.PropertyMappings
-			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
+			.Where(p => p.ForEntityType == currentType || currentType.IsSubclassOf(p.ForEntityType))
 			.Where(p => p.IsComputed == false)
 			.Select(p => new ColumnMappingToUpdate
 			{
@@ -151,7 +151,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		where TEntity : class, TBaseEntity
 	{
 		var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkUpdate && p.CanHandle(dbContext))
-			?? throw new InvalidOperationException("No provider supporting the UpdateAll operation was found");
+			?? throw new InvalidOperationException("No provider supporting the UpdateAll operation was found.");
 
 		var mapping = EFMappingFactory.GetMappingsForContext(objectContext);
 		var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
