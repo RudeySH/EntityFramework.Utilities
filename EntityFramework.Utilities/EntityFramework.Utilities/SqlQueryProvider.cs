@@ -394,6 +394,11 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		return queryInfo;
 	}
 
+	public virtual DbParameter GetParameter(ObjectParameter parameter)
+	{
+		return new SqlParameter { Value = parameter.Value, ParameterName = parameter.Name };
+	}
+
 	private sealed class UpdateAllCommands
 	{
 		public string CreateTempTable { get; set; } = null!;

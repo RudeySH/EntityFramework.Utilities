@@ -1,4 +1,5 @@
-﻿using System.Data.Entity;
+﻿using System.Data.Common;
+using System.Data.Entity;
 using System.Data.Entity.Core.Objects;
 
 namespace EntityFramework.Utilities;
@@ -37,4 +38,6 @@ public interface IQueryProvider
 	bool CanHandle(DbContext dbContext);
 
 	QueryInformation GetQueryInformation<T>(ObjectQuery<T> query);
+
+	DbParameter GetParameter(ObjectParameter parameter);
 }
