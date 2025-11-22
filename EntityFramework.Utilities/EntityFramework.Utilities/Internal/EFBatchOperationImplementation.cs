@@ -1,7 +1,6 @@
 ﻿using System.Data.Entity;
 using System.Data.Entity.Core.Objects;
 using System.Data.Entity.Infrastructure;
-using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq.Expressions;
 
@@ -254,7 +253,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 			return 0;
 
 		var delete = provider.GetDeleteQuery(queryInformation);
-		var parameters = query.Parameters.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name }).ToArray<object>();
+		var parameters = query.Parameters.Select(provider.GetParameter).ToArray<object>();
 
 		if (transactionalBehavior != null)
 			return objectContext.ExecuteStoreCommand(transactionalBehavior.Value, delete, parameters);
@@ -281,7 +280,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 		queryInformation.TopExpression = topExpression;
 
 		var delete = provider.GetDeleteQuery(queryInformation);
-		var parameters = query.Parameters.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name }).ToArray<object>();
+		var parameters = query.Parameters.Select(provider.GetParameter).ToArray<object>();
 
 		if (transactionalBehavior != null)
 			return objectContext.ExecuteStoreCommandAsync(transactionalBehavior.Value, delete, cancellationToken, parameters);
@@ -326,7 +325,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 
 		var parameters = query.Parameters
 			.Concat(mquery.Parameters)
-			.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name })
+			.Select(provider.GetParameter)
 			.ToArray<object>();
 
 		if (transactionalBehavior != null)
@@ -364,7 +363,7 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 
 		var parameters = query.Parameters
 			.Concat(mquery.Parameters)
-			.Select(p => new SqlParameter { Value = p.Value, ParameterName = p.Name })
+			.Select(provider.GetParameter)
 			.ToArray<object>();
 
 		if (transactionalBehavior != null)
