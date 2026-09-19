@@ -14,6 +14,8 @@ public interface IQueryProvider
 
 	bool CanBulkUpdate { get; }
 
+	bool CanBulkDelete { get; }
+
 	string GetDeleteQuery(QueryInformation queryInfo);
 
 	string GetUpdateQuery(QueryInformation predicateQueryInfo, QueryInformation modificationQueryInfo);
@@ -34,6 +36,14 @@ public interface IQueryProvider
 		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
 		IEnumerable<T> items, UpdateSpecification<T> updateSpecification, UpdateAllOptions? options,
 		CancellationToken cancellationToken);
+
+	int DeleteItems<T>(
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
+		IEnumerable<T> items, DeleteAllOptions? options);
+
+	Task<int> DeleteItemsAsync<T>(
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
+		IEnumerable<T> items, DeleteAllOptions? options, CancellationToken cancellationToken);
 
 	bool CanHandle(DbContext dbContext);
 

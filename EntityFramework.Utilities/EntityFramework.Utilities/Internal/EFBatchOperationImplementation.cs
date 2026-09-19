@@ -177,6 +177,75 @@ internal sealed class EFBatchOperationImplementation<TContext, TBaseEntity>
 			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, spec, options, cancellationToken);
 	}
 
+	public int DeleteAll<TEntity>(
+		IEnumerable<TEntity> items, DeleteAllOptions? options = null)
+		where TEntity : class, TBaseEntity
+	{
+		var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkDelete && p.CanHandle(dbContext));
+
+		if (provider == null)
+		{
+			if (Configuration.DisableDefaultFallback)
+				throw new InvalidOperationException("No provider supporting the DeleteAll operation was found.");
+
+			return Fallbacks.DefaultDeleteAll(dbContext, dbSet, items);
+		}
+
+		var mapping = EFMappingFactory.GetMappingsForContext(objectContext);
+		var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
+		var tableMapping = typeMapping.TableMappings.First();
+		var currentType = typeof(TEntity);
+
+		var columns = tableMapping.PropertyMappings
+			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
+			.Select(p => new ColumnMappingToUpdate
+			{
+				NameOnObject = p.PropertyName,
+				NameInDatabase = p.ColumnName,
+				DataType = p.DataType,
+				DataTypeFull = p.DataTypeFull,
+				IsPrimaryKey = p.IsPrimaryKey,
+			})
+			.ToList();
+
+		return provider.DeleteItems(dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, options);
+	}
+
+	public Task<int> DeleteAllAsync<TEntity>(
+		IEnumerable<TEntity> items, DeleteAllOptions? options = null, CancellationToken cancellationToken = default)
+		where TEntity : class, TBaseEntity
+	{
+		var provider = Configuration.Providers.FirstOrDefault(p => p.CanBulkDelete && p.CanHandle(dbContext));
+
+		if (provider == null)
+		{
+			if (Configuration.DisableDefaultFallback)
+				throw new InvalidOperationException("No provider supporting the DeleteAll operation was found.");
+
+			return Fallbacks.DefaultDeleteAllAsync(dbContext, dbSet, items, cancellationToken);
+		}
+
+		var mapping = EFMappingFactory.GetMappingsForContext(objectContext);
+		var typeMapping = mapping.TypeMappings[typeof(TBaseEntity)];
+		var tableMapping = typeMapping.TableMappings.First();
+		var currentType = typeof(TEntity);
+
+		var columns = tableMapping.PropertyMappings
+			.Where(p => currentType.IsSubclassOf(p.ForEntityType) || p.ForEntityType == currentType)
+			.Select(p => new ColumnMappingToUpdate
+			{
+				NameOnObject = p.PropertyName,
+				NameInDatabase = p.ColumnName,
+				DataType = p.DataType,
+				DataTypeFull = p.DataTypeFull,
+				IsPrimaryKey = p.IsPrimaryKey,
+			})
+			.ToList();
+
+		return provider.DeleteItemsAsync(
+			dbContext, tableMapping.Schema, tableMapping.TableName, columns, items, options, cancellationToken);
+	}
+
 	public IEFBatchOperationFiltered<TBaseEntity> Where(
 		Expression<Func<TBaseEntity, bool>> predicate)
 	{

@@ -20,6 +20,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 	public bool CanBulkUpdate => true;
 
+	public bool CanBulkDelete => true;
+
 	private static readonly Regex FromRegex = new(
 		@"FROM\s*\[([^\]]+)\]\.\[([^\]]+)\]\s*AS\s*(\[[^\]]+\])", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -286,6 +288,103 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		}
 	}
 
+	public virtual int DeleteItems<T>(
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
+		IEnumerable<T> items, DeleteAllOptions? options)
+	{
+		var sqlOptions = ((SqlDeleteAllOptions?)options) ?? new SqlDeleteAllOptions();
+		var keyColumns = columns.Where(c => c.IsPrimaryKey).ToArray();
+		var tempTableName = $"#{Guid.NewGuid():N}";
+
+		var commands = PrepareDeleteAllCommands(schema, tableName, tempTableName, keyColumns);
+
+		if (dbContext.Database.Connection.State != ConnectionState.Open)
+			dbContext.Database.Connection.Open();
+
+		// Create the temporary table.
+		dbContext.Database.ExecuteSqlCommand(commands.CreateTempTable);
+
+		// Insert the keys of the items to delete into the temporary table with SqlBulkCopy.
+		var sqlInsertAllOptions = new SqlInsertAllOptions
+		{
+			BatchSize = sqlOptions.BatchSize,
+			SqlBulkCopyOptions = sqlOptions.SqlBulkCopyOptions,
+		};
+
+		this.InsertItems(dbContext, schema, tempTableName, keyColumns, items, sqlInsertAllOptions);
+
+		// Delete the matching rows from the original table.
+		var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.DeleteJoin);
+
+		// Delete the temporary table.
+		dbContext.Database.ExecuteSqlCommand(commands.DeleteTempTable);
+
+		return rowsAffected;
+	}
+
+	public virtual async Task<int> DeleteItemsAsync<T>(
+		DbContext dbContext, string schema, string tableName, IReadOnlyList<ColumnMappingToUpdate> columns,
+		IEnumerable<T> items, DeleteAllOptions? options, CancellationToken cancellationToken)
+	{
+		var sqlOptions = ((SqlDeleteAllOptions?)options) ?? new SqlDeleteAllOptions();
+		var keyColumns = columns.Where(c => c.IsPrimaryKey).ToArray();
+		var tempTableName = $"#{Guid.NewGuid():N}";
+
+		var commands = PrepareDeleteAllCommands(schema, tableName, tempTableName, keyColumns);
+
+		if (dbContext.Database.Connection.State != ConnectionState.Open)
+			await dbContext.Database.Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+
+		// Create the temporary table.
+		await dbContext.Database.ExecuteSqlCommandAsync(commands.CreateTempTable, cancellationToken)
+			.ConfigureAwait(false);
+
+		// Insert the keys of the items to delete into the temporary table with SqlBulkCopy.
+		var sqlInsertAllOptions = new SqlInsertAllOptions
+		{
+			BatchSize = sqlOptions.BatchSize,
+			SqlBulkCopyOptions = sqlOptions.SqlBulkCopyOptions,
+		};
+
+		await this.InsertItemsAsync(dbContext, schema, tempTableName, keyColumns, items, sqlInsertAllOptions, cancellationToken)
+			.ConfigureAwait(false);
+
+		// Delete the matching rows from the original table.
+		var rowsAffected = await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteJoin, cancellationToken)
+			.ConfigureAwait(false);
+
+		// Delete the temporary table.
+		await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteTempTable, cancellationToken)
+			.ConfigureAwait(false);
+
+		return rowsAffected;
+	}
+
+	private static DeleteAllCommands PrepareDeleteAllCommands(
+		string schema, string tableName, string tempTableName, IReadOnlyList<ColumnMappingToUpdate> keyColumns)
+	{
+		var schemaPrefix = !string.IsNullOrWhiteSpace(schema) ? $"[{schema}]." : null;
+
+		// Prepare command for creating the temporary table.
+		var columnDefinitions = keyColumns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
+		var pkConstraint = string.Join(", ", keyColumns.Select(c => $"[{c.NameInDatabase}]"));
+		var createTempTableSql = $"CREATE TABLE {schemaPrefix}[{tempTableName}] ({string.Join(", ", columnDefinitions)}, PRIMARY KEY ({pkConstraint}))";
+
+		// Prepare command for deleting the matching rows from the original table.
+		var joinCondition = string.Join(" AND ", keyColumns.Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
+		var deleteJoinSql = $"DELETE t FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}";
+
+		// Prepare command for deleting the temporary table.
+		var deleteTempTableSql = $"DROP TABLE {schemaPrefix}[{tempTableName}]";
+
+		return new DeleteAllCommands
+		{
+			CreateTempTable = createTempTableSql,
+			DeleteJoin = deleteJoinSql,
+			DeleteTempTable = deleteTempTableSql,
+		};
+	}
+
 	private static UpdateAllCommands PrepareUpdateAllCommands(
 		string schema, string tableName, string tempTableName, IReadOnlyList<ColumnMappingToUpdate> columns,
 		HashSet<string> propertiesToUpdate, SqlUpdateAllOptions sqlOptions)
@@ -404,6 +503,15 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		public string CreateTempTable { get; set; } = null!;
 
 		public string UpdateOrMerge { get; set; } = null!;
+
+		public string DeleteTempTable { get; set; } = null!;
+	}
+
+	private sealed class DeleteAllCommands
+	{
+		public string CreateTempTable { get; set; } = null!;
+
+		public string DeleteJoin { get; set; } = null!;
 
 		public string DeleteTempTable { get; set; } = null!;
 	}

@@ -30,7 +30,7 @@ internal sealed class Fallbacks
 		where TEntity : class
 	{
 		foreach (var item in dbSet.Where(predicate))
-			dbSet.Add(item);
+			dbSet.Remove(item);
 
 		return dbContext.SaveChanges();
 	}
@@ -41,6 +41,26 @@ internal sealed class Fallbacks
 		where TEntity : class
 	{
 		foreach (var item in dbSet.Where(predicate))
+			dbSet.Remove(item);
+
+		return dbContext.SaveChangesAsync(cancellationToken);
+	}
+
+	internal static int DefaultDeleteAll<TEntity>(
+		DbContext dbContext, IDbSet<TEntity> dbSet, IEnumerable<TEntity> items)
+		where TEntity : class
+	{
+		foreach (var item in items)
+			dbSet.Remove(item);
+
+		return dbContext.SaveChanges();
+	}
+
+	internal static Task<int> DefaultDeleteAllAsync<TEntity>(
+		DbContext dbContext, IDbSet<TEntity> dbSet, IEnumerable<TEntity> items, CancellationToken cancellationToken)
+		where TEntity : class
+	{
+		foreach (var item in items)
 			dbSet.Remove(item);
 
 		return dbContext.SaveChangesAsync(cancellationToken);

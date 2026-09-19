@@ -53,6 +53,29 @@ public interface IEFBatchOperationBase<TBaseEntity>
 		where TEntity : class, TBaseEntity;
 
 	/// <summary>
+	///     Bulk delete all items by their primary key if the provider supports it. Otherwise it will use the
+	///     default delete unless Configuration.DisableDefaultFallback is set to true in which case it would throw
+	///     an exception.
+	/// </summary>
+	/// <param name="items">The items to delete.</param>
+	/// <param name="options">The options. For SQL Server databases, use <see cref="SqlDeleteAllOptions"/>.</param>
+	int DeleteAll<TEntity>(
+		IEnumerable<TEntity> items, DeleteAllOptions? options = null)
+		where TEntity : class, TBaseEntity;
+
+	/// <summary>
+	///     Bulk delete all items by their primary key asynchronously if the provider supports it. Otherwise it will
+	///     use the default delete unless Configuration.DisableDefaultFallback is set to true in which case it would
+	///     throw an exception.
+	/// </summary>
+	/// <param name="items">The items to delete.</param>
+	/// <param name="options">The options. For SQL Server databases, use <see cref="SqlDeleteAllOptions"/>.</param>
+	/// <param name="cancellationToken">The cancellation token.</param>
+	Task<int> DeleteAllAsync<TEntity>(
+		IEnumerable<TEntity> items, DeleteAllOptions? options = null, CancellationToken cancellationToken = default)
+		where TEntity : class, TBaseEntity;
+
+	/// <summary>
 	///    Provides operations that work based on a predicate, such as Update and Delete.
 	/// </summary>
 	/// <param name="predicate">The predicate.</param>
