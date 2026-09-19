@@ -215,6 +215,69 @@ public class UpdateBulkTests
 		}
 	}
 
+	[TestMethod]
+	public void UpdateBulk_DeleteIfNotMatchedRemovesUnmatchedRows()
+	{
+		Setup();
+
+		using (var db = Context.Sql())
+		{
+			var toKeep = db.BlogPosts.First(p => p.Title == "T1");
+			toKeep.Title = "T1-updated";
+
+			var options = new SqlUpdateAllOptions { DeleteIfNotMatched = true };
+
+			EFBatchOperation.For(db, db.BlogPosts)
+				.UpdateAll([toKeep], spec => spec.ColumnsToUpdate(p => p.Title), options);
+		}
+
+		using (var db = Context.Sql())
+		{
+			var posts = db.BlogPosts.ToList();
+			Assert.AreEqual(1, posts.Count);
+			Assert.AreEqual("T1-updated", posts[0].Title);
+		}
+	}
+
+	[TestMethod]
+	public void UpdateBulk_UpsertsViaInsertIfNotMatched()
+	{
+		using (var db = Context.Sql())
+		{
+			if (db.Database.Exists())
+			{
+				db.Database.ForceDelete();
+			}
+			db.Database.Create();
+
+			var guid = Guid.NewGuid();
+			var list = new List<MultiPkObject>
+			{
+				new MultiPkObject { Pk1 = guid, Pk2 = 0, Text = "Existing" },
+			};
+
+			EFBatchOperation.For(db, db.MultiPkObjects).InsertAll(list);
+
+			var options = new SqlUpdateAllOptions { InsertIfNotMatched = true };
+			var items = new List<MultiPkObject>
+			{
+				new MultiPkObject { Pk1 = guid, Pk2 = 0, Text = "Updated" },
+				new MultiPkObject { Pk1 = guid, Pk2 = 1, Text = "New" },
+			};
+
+			EFBatchOperation.For(db, db.MultiPkObjects)
+				.UpdateAll(items, spec => spec.ColumnsToUpdate(p => p.Text), options);
+		}
+
+		using (var db = Context.Sql())
+		{
+			var items = db.MultiPkObjects.OrderBy(x => x.Pk2).ToList();
+			Assert.AreEqual(2, items.Count);
+			Assert.AreEqual("Updated", items[0].Text);
+			Assert.AreEqual("New", items[1].Text);
+		}
+	}
+
 	private static void Setup()
 	{
 		using var db = Context.Sql();
@@ -225,11 +288,11 @@ public class UpdateBulkTests
 		db.Database.Create();
 
 		var list = new List<BlogPost>
-			{
-				BlogPost.Create("T1"),
-				BlogPost.Create("T2"),
-				BlogPost.Create("T3")
-			};
+		{
+			BlogPost.Create("T1"),
+			BlogPost.Create("T2"),
+			BlogPost.Create("T3")
+		};
 
 		EFBatchOperation.For(db, db.BlogPosts).InsertAll(list);
 	}

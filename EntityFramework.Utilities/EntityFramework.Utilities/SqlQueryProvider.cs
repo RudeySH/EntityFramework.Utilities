@@ -402,6 +402,16 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var setters = string.Join(", ", columnsToSet.Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
 		var updateOrMergeSql = new StringBuilder();
 
+		string? skipUnchangedCondition = null;
+
+		if (sqlOptions.SkipUnchangedRows)
+		{
+			var targetColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(t.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"t.[{c.NameInDatabase}]"));
+			var sourceColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(s.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"s.[{c.NameInDatabase}]"));
+
+			skipUnchangedCondition = $"NOT EXISTS (SELECT {targetColumns} INTERSECT SELECT {sourceColumns})";
+		}
+
 		if (sqlOptions.InsertIfNotMatched || sqlOptions.DeleteIfNotMatched)
 		{
 			updateOrMergeSql.Append($"MERGE {schemaPrefix}[{tableName}]");
@@ -416,25 +426,25 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 				var insertColumns = string.Join(", ", columns.Select(p => $"[{p.NameInDatabase}]"));
 				var insertValues = string.Join(", ", columns.Select(p => $"s.[{p.NameInDatabase}]"));
 
-				updateOrMergeSql.Append($" WHEN NOT MATCHED BY t THEN INSERT ({insertColumns}) VALUES ({insertValues})");
+				updateOrMergeSql.Append($" WHEN NOT MATCHED BY TARGET THEN INSERT ({insertColumns}) VALUES ({insertValues})");
 			}
 
 			if (sqlOptions.DeleteIfNotMatched)
-				updateOrMergeSql.Append(" WHEN NOT MATCHED BY s THEN DELETE");
+				updateOrMergeSql.Append(" WHEN NOT MATCHED BY SOURCE THEN DELETE");
 
-			updateOrMergeSql.Append($" WHEN MATCHED THEN UPDATE SET {setters}");
+			updateOrMergeSql.Append(" WHEN MATCHED");
+
+			if (skipUnchangedCondition != null)
+				updateOrMergeSql.Append($" AND {skipUnchangedCondition}");
+
+			updateOrMergeSql.Append($" THEN UPDATE SET {setters};");
 		}
 		else
 		{
 			updateOrMergeSql.Append($"UPDATE t SET {setters} FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}");
-		}
 
-		if (sqlOptions.SkipUnchangedRows)
-		{
-			var targetColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(t.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"t.[{c.NameInDatabase}]"));
-			var sourceColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(s.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"s.[{c.NameInDatabase}]"));
-
-			updateOrMergeSql.Append($" WHERE NOT EXISTS (SELECT {targetColumns} INTERSECT SELECT {sourceColumns})");
+			if (skipUnchangedCondition != null)
+				updateOrMergeSql.Append($" WHERE {skipUnchangedCondition}");
 		}
 
 		// Prepare command for deleting the temporary table.
