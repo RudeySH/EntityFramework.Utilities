@@ -175,8 +175,8 @@ internal sealed class EFMapping
 				break;
 
 			case "time":
-				if (scalar.Column.Scale != null)
-					return $"{scalar.Column.TypeName}({scalar.Column.Scale})";
+				if (scalar.Column.Precision != null)
+					return $"{scalar.Column.TypeName}({scalar.Column.Precision})";
 				break;
 		}
 

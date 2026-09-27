@@ -83,8 +83,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		using (var reader = new EFDataReader<T>(itemCollection, columns))
 		{
-			if (sqlConnection.State != ConnectionState.Open)
-				sqlConnection.Open();
+			using var connectionScope = ConnectionScope.EnsureOpen(sqlConnection);
 
 			using var copy = new SqlBulkCopy(sqlConnection, sqlOptions.SqlBulkCopyOptions, sqlTransaction);
 
@@ -130,8 +129,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		using (reader)
 #endif
 		{
-			if (sqlConnection.State != ConnectionState.Open)
-				await sqlConnection.OpenAsync(cancellationToken).ConfigureAwait(false);
+			using var connectionScope = await ConnectionScope.EnsureOpenAsync(sqlConnection, cancellationToken).ConfigureAwait(false);
 
 			var copyOptions = sqlOptions?.SqlBulkCopyOptions ?? SqlBulkCopyOptions.Default;
 			using var copy = new SqlBulkCopy(sqlConnection, copyOptions, sqlTransaction);
@@ -172,8 +170,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var commands = PrepareUpdateAllCommands(
 			schema, tableName, tempTableName, columns, propertiesToUpdate, sqlOptions);
 
-		if (dbContext.Database.Connection.State != ConnectionState.Open)
-			dbContext.Database.Connection.Open();
+		using var connectionScope = ConnectionScope.EnsureOpen(dbContext.Database.Connection);
 
 		var transaction = sqlOptions.WrapInTransaction
 			? dbContext.Database.Connection.BeginTransaction(sqlOptions.TransactionIsolationLevel)
@@ -193,11 +190,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 			this.InsertItems(dbContext, schema, tempTableName, columns, items, sqlInsertAllOptions);
 
-			// Update (or merge) rows in the original table.
+			// Update (or merge) rows in the original table, then drop the temporary table.
 			var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.UpdateOrMerge);
-
-			// Delete the temporary table.
-			dbContext.Database.ExecuteSqlCommand(commands.DeleteTempTable);
 
 			transaction?.Commit();
 
@@ -229,8 +223,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var commands = PrepareUpdateAllCommands(
 			schema, tableName, tempTableName, columns, propertiesToUpdate, sqlOptions);
 
-		if (dbContext.Database.Connection.State != ConnectionState.Open)
-			await dbContext.Database.Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+		using var connectionScope = await ConnectionScope.EnsureOpenAsync(dbContext.Database.Connection, cancellationToken).ConfigureAwait(false);
 
 		var transaction = sqlOptions.WrapInTransaction
 #if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
@@ -257,12 +250,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 				dbContext, schema, tempTableName, columns, items, sqlInsertAllOptions, cancellationToken)
 				.ConfigureAwait(false);
 
-			// Update (or merge) rows in the original table.
+			// Update (or merge) rows in the original table, then drop the temporary table.
 			var rowsAffected = await dbContext.Database.ExecuteSqlCommandAsync(commands.UpdateOrMerge, cancellationToken)
-				.ConfigureAwait(false);
-
-			// Delete the temporary table.
-			await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteTempTable, cancellationToken)
 				.ConfigureAwait(false);
 
 #if NETSTANDARD2_1 || NETSTANDARD2_1_OR_GREATER
@@ -298,8 +287,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		var commands = PrepareDeleteAllCommands(schema, tableName, tempTableName, keyColumns);
 
-		if (dbContext.Database.Connection.State != ConnectionState.Open)
-			dbContext.Database.Connection.Open();
+		using var connectionScope = ConnectionScope.EnsureOpen(dbContext.Database.Connection);
 
 		// Create the temporary table.
 		dbContext.Database.ExecuteSqlCommand(commands.CreateTempTable);
@@ -313,11 +301,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		this.InsertItems(dbContext, schema, tempTableName, keyColumns, items, sqlInsertAllOptions);
 
-		// Delete the matching rows from the original table.
+		// Delete the matching rows from the original table, then drop the temporary table.
 		var rowsAffected = dbContext.Database.ExecuteSqlCommand(commands.DeleteJoin);
-
-		// Delete the temporary table.
-		dbContext.Database.ExecuteSqlCommand(commands.DeleteTempTable);
 
 		return rowsAffected;
 	}
@@ -332,8 +317,7 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		var commands = PrepareDeleteAllCommands(schema, tableName, tempTableName, keyColumns);
 
-		if (dbContext.Database.Connection.State != ConnectionState.Open)
-			await dbContext.Database.Connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+		using var connectionScope = await ConnectionScope.EnsureOpenAsync(dbContext.Database.Connection, cancellationToken).ConfigureAwait(false);
 
 		// Create the temporary table.
 		await dbContext.Database.ExecuteSqlCommandAsync(commands.CreateTempTable, cancellationToken)
@@ -349,12 +333,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		await this.InsertItemsAsync(dbContext, schema, tempTableName, keyColumns, items, sqlInsertAllOptions, cancellationToken)
 			.ConfigureAwait(false);
 
-		// Delete the matching rows from the original table.
+		// Delete the matching rows from the original table, then drop the temporary table.
 		var rowsAffected = await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteJoin, cancellationToken)
-			.ConfigureAwait(false);
-
-		// Delete the temporary table.
-		await dbContext.Database.ExecuteSqlCommandAsync(commands.DeleteTempTable, cancellationToken)
 			.ConfigureAwait(false);
 
 		return rowsAffected;
@@ -366,22 +346,18 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var schemaPrefix = !string.IsNullOrWhiteSpace(schema) ? $"[{schema}]." : null;
 
 		// Prepare command for creating the temporary table.
-		var columnDefinitions = keyColumns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
+		var columnDefinitions = keyColumns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.Contains("char") ? " COLLATE DATABASE_DEFAULT" : null)}");
 		var pkConstraint = string.Join(", ", keyColumns.Select(c => $"[{c.NameInDatabase}]"));
 		var createTempTableSql = $"CREATE TABLE {schemaPrefix}[{tempTableName}] ({string.Join(", ", columnDefinitions)}, PRIMARY KEY ({pkConstraint}))";
 
 		// Prepare command for deleting the matching rows from the original table.
 		var joinCondition = string.Join(" AND ", keyColumns.Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
-		var deleteJoinSql = $"DELETE t FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}";
-
-		// Prepare command for deleting the temporary table.
-		var deleteTempTableSql = $"DROP TABLE {schemaPrefix}[{tempTableName}]";
+		var deleteJoinSql = $"DELETE t FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}; DROP TABLE {schemaPrefix}[{tempTableName}]";
 
 		return new DeleteAllCommands
 		{
 			CreateTempTable = createTempTableSql,
 			DeleteJoin = deleteJoinSql,
-			DeleteTempTable = deleteTempTableSql,
 		};
 	}
 
@@ -392,13 +368,13 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		var schemaPrefix = !string.IsNullOrWhiteSpace(schema) ? $"[{schema}]." : null;
 
 		// Prepare command for creating the temporary table.
-		var columnDefinitions = columns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.EndsWith("char", StringComparison.Ordinal) ? " COLLATE DATABASE_DEFAULT" : null)}");
+		var columnDefinitions = columns.Select(c => $"[{c.NameInDatabase}] {c.DataTypeFull}{(c.DataType.Contains("char") ? " COLLATE DATABASE_DEFAULT" : null)}");
 		var pkConstraint = string.Join(", ", columns.Where(c => c.IsPrimaryKey).Select(c => $"[{c.NameInDatabase}]"));
 		var createTempTableSql = $"CREATE TABLE {schemaPrefix}[{tempTableName}] ({string.Join(", ", columnDefinitions)}, PRIMARY KEY ({pkConstraint}))";
 
 		// Prepare command for updating (or merging) rows in the original table.
 		var joinCondition = string.Join(" AND ", columns.Where(c => c.IsPrimaryKey).Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
-		var columnsToSet = columns.Where(c => propertiesToUpdate.Contains(c.NameOnObject)).ToArray();
+		var columnsToSet = columns.Where(c => !c.IsPrimaryKey && propertiesToUpdate.Contains(c.NameOnObject)).ToArray();
 		var setters = string.Join(", ", columnsToSet.Select(c => $"t.[{c.NameInDatabase}] = s.[{c.NameInDatabase}]"));
 		var updateOrMergeSql = new StringBuilder();
 
@@ -406,8 +382,8 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 
 		if (sqlOptions.SkipUnchangedRows)
 		{
-			var targetColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(t.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"t.[{c.NameInDatabase}]"));
-			var sourceColumns = string.Join(", ", columnsToSet.Select(c => c.DataType == "float" ? $"ROUND(s.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"s.[{c.NameInDatabase}]"));
+			var targetColumns = string.Join(", ", columnsToSet.Select(c => c.DataType is "float" or "real" ? $"ROUND(t.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"t.[{c.NameInDatabase}]"));
+			var sourceColumns = string.Join(", ", columnsToSet.Select(c => c.DataType is "float" or "real" ? $"ROUND(s.[{c.NameInDatabase}], {sqlOptions.FloatDecimals}, 1)" : $"s.[{c.NameInDatabase}]"));
 
 			skipUnchangedCondition = $"NOT EXISTS (SELECT {targetColumns} INTERSECT SELECT {sourceColumns})";
 		}
@@ -432,29 +408,33 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 			if (sqlOptions.DeleteIfNotMatched)
 				updateOrMergeSql.Append(" WHEN NOT MATCHED BY SOURCE THEN DELETE");
 
-			updateOrMergeSql.Append(" WHEN MATCHED");
+			if (columnsToSet.Length != 0)
+			{
+				updateOrMergeSql.Append(" WHEN MATCHED");
 
-			if (skipUnchangedCondition != null)
-				updateOrMergeSql.Append($" AND {skipUnchangedCondition}");
+				if (skipUnchangedCondition != null)
+					updateOrMergeSql.Append($" AND {skipUnchangedCondition}");
 
-			updateOrMergeSql.Append($" THEN UPDATE SET {setters};");
+				updateOrMergeSql.Append($" THEN UPDATE SET {setters}");
+			}
 		}
 		else
 		{
+			if (columnsToSet.Length == 0)
+				throw new InvalidOperationException("There are no non-key columns to update.");
+
 			updateOrMergeSql.Append($"UPDATE t SET {setters} FROM {schemaPrefix}[{tableName}] AS t INNER JOIN {schemaPrefix}[{tempTableName}] AS s ON {joinCondition}");
 
 			if (skipUnchangedCondition != null)
 				updateOrMergeSql.Append($" WHERE {skipUnchangedCondition}");
 		}
 
-		// Prepare command for deleting the temporary table.
-		var deleteTempTableSql = $"DROP TABLE {schemaPrefix}[{tempTableName}]";
+		updateOrMergeSql.Append($"; DROP TABLE {schemaPrefix}[{tempTableName}]");
 
 		return new UpdateAllCommands
 		{
 			CreateTempTable = createTempTableSql,
 			UpdateOrMerge = updateOrMergeSql.ToString(),
-			DeleteTempTable = deleteTempTableSql,
 		};
 	}
 
@@ -513,8 +493,6 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		public string CreateTempTable { get; set; } = null!;
 
 		public string UpdateOrMerge { get; set; } = null!;
-
-		public string DeleteTempTable { get; set; } = null!;
 	}
 
 	private sealed class DeleteAllCommands
@@ -522,7 +500,5 @@ public class SqlQueryProvider : IQueryProvider, INoOpAnalyzer
 		public string CreateTempTable { get; set; } = null!;
 
 		public string DeleteJoin { get; set; } = null!;
-
-		public string DeleteTempTable { get; set; } = null!;
 	}
 }
